@@ -1,0 +1,35 @@
+name: Translation / 翻译反馈
+description: 修正译文或讨论新增语言 / Fix wording or discuss a new language
+title: '[L10n] '
+body:
+- type: input
+  id: language
+  attributes:
+    label: Language / 语言
+    placeholder: English (en), 简体中文 (zh-Hans), or proposed BCP 47 tag
+  validations:
+    required: true
+- type: input
+  id: location
+  attributes:
+    label: Location / 出现位置或资源 key
+    placeholder: Settings, long.running, permission help…
+  validations:
+    required: true
+- type: textarea
+  id: current
+  attributes:
+    label: Current wording or issue / 当前译文或问题
+  validations:
+    required: true
+- type: textarea
+  id: suggestion
+  attributes:
+    label: Suggested wording / 建议译文或语言范围
+  validations:
+    required: true
+- type: textarea
+  id: context
+  attributes:
+    label: Context / 可选上下文
+    description: Explain plural/parameter/layout concerns. Redact screenshots. / 说明复数、参数或排版问题，截图请脱敏。

@@ -1,0 +1,8 @@
+{
+  "defaultSelection": "system",
+  "fallbackLanguage": "en",
+  "languages": [
+    { "identifier": "zh-Hans", "nativeName": "简体中文" },
+    { "identifier": "en", "nativeName": "English" }
+  ]
+}

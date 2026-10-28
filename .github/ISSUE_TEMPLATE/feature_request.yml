@@ -1,0 +1,31 @@
+name: Feature request / 功能建议
+description: 说明遇到的问题和期望的改进 / Describe a problem and a useful improvement
+title: '[Feature] '
+body:
+- type: markdown
+  attributes:
+    value: '大改动先讨论范围；提出建议不代表已经承诺实现。
+
+      Discuss larger changes first. A request is not a commitment to implement it.'
+- type: textarea
+  id: problem
+  attributes:
+    label: Problem / 想解决的问题
+    description: Describe the task and the current friction. / 说明使用场景与当前不便。
+  validations:
+    required: true
+- type: textarea
+  id: proposal
+  attributes:
+    label: Proposed behavior / 期望行为
+  validations:
+    required: true
+- type: textarea
+  id: alternatives
+  attributes:
+    label: Alternatives / 已尝试的替代方式
+- type: textarea
+  id: scope
+  attributes:
+    label: Scope and trade-offs / 范围与影响
+    description: Mention permissions, storage, dependencies, or network access if relevant. / 如涉及额外权限、数据、依赖或联网，请说明。

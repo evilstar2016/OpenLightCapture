@@ -1,0 +1,711 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		072DB87F997501D7096B0DBD /* AutomaticScrollEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E730B71BB2DFE02CAF9A730 /* AutomaticScrollEvent.swift */; };
+		07C535D0776EB34636BC3BC5 /* FilenamePolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = C003CA8ACD613937C69FEDE0 /* FilenamePolicy.swift */; };
+		08CEE99D9E344260BD317AC4 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 7B6C759D82446F0CF1B4DBDF /* Localizable.xcstrings */; };
+		0E2F0DAE013C5AC3B2E3B75F /* AnnotationDraggingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0E2BBA81346AC22A78F0BDA /* AnnotationDraggingTests.swift */; };
+		10DBABB80D87E1DFBBDD5C6D /* OverlapMatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = E948CBB81FC1BBCA115CF0A9 /* OverlapMatcher.swift */; };
+		1803CBED8B7CFF9383029304 /* LocalizationContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D8CFA094D37A8D3A0305E6C /* LocalizationContext.swift */; };
+		216C28CBE530604D6D98F07B /* LegacyPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = C716AB3FF12F97F2C50A722D /* LegacyPreferences.swift */; };
+		230E10E5853C7AE041161063 /* OutputDeliveryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C12C974B6C29D99FD268CD44 /* OutputDeliveryService.swift */; };
+		263F817823BC5416F499FD3C /* ScreenCaptureService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6748D4CF94909D9019527E4C /* ScreenCaptureService.swift */; };
+		26B53485A0906F470C78C95F /* AutomaticScrollTarget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4316DA64A711042B2BC85B8D /* AutomaticScrollTarget.swift */; };
+		2D8FAD8EE7E80C6619509FCE /* DisplayTransform.swift in Sources */ = {isa = PBXBuildFile; fileRef = 363AC92047AF34A72E5F5516 /* DisplayTransform.swift */; };
+		34C101528FFB6D61D4FDBD26 /* AnnotationStyleConsistencyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D5640356EE20709CC9AC2DD /* AnnotationStyleConsistencyTests.swift */; };
+		34DE61721CF1A542C225E639 /* EditorToolbarConsistencyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D2B3B43A8970D1F9D23C75D /* EditorToolbarConsistencyTests.swift */; };
+		3731E3375877DABFF17A2516 /* LocalizationConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0A4A5FC697AFC77FE40C06 /* LocalizationConfiguration.swift */; };
+		391D9DC75EB4603B37AF0199 /* AnnotationDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = D24DEB7497A65C1D5DC56CF1 /* AnnotationDocument.swift */; };
+		3CE0B58CB3A76F416710D5B6 /* TileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BAD7B15B99AC8B3D1C4A860 /* TileStore.swift */; };
+		40ED10F3C4FA46C71811BE12 /* CaptureSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78F9FEC7CF50DC73F77EE0C6 /* CaptureSession.swift */; };
+		43DB25CF1CED2FB957F51AE9 /* AnnotationToolbarStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A87F05A9505C08FC46FD26B /* AnnotationToolbarStyle.swift */; };
+		4698E9DDBB94F4FDEF0A58EE /* AssetStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C019956A6CC03090B7DCC307 /* AssetStoreTests.swift */; };
+		4E054AAA942C612D76BCE7C9 /* CGImageCoordinates.swift in Sources */ = {isa = PBXBuildFile; fileRef = F696585CFDA54B23B02E86F2 /* CGImageCoordinates.swift */; };
+		50220445BE07E7E20E77A264 /* ClipboardPublisher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EC2C2D92F2DDE3330C3345B /* ClipboardPublisher.swift */; };
+		580FBB2550916C738A56D620 /* PermissionAlertPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 601645AD5202FEA865B25066 /* PermissionAlertPresenter.swift */; };
+		5EF2AB1A052F52921653F50C /* LocalizationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93E22768C2B7198A3D45C2F3 /* LocalizationStore.swift */; };
+		67E96FF52FD2FC953FE73BE7 /* AnnotationStyleControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF366FFF408C254F11FC01F5 /* AnnotationStyleControls.swift */; };
+		6929BEC0BF26E13CE5EB23D9 /* LongCaptureEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9253008ECAA817E0634E2423 /* LongCaptureEngineTests.swift */; };
+		6DEBAC2D32715F350C4FB1A5 /* ScreenCaptureStreamService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 804E260C1C2770F88E766D60 /* ScreenCaptureStreamService.swift */; };
+		6F136A4EB6C8B07E633E6504 /* LongCaptureControlPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D66779471AAECD275423CC83 /* LongCaptureControlPanel.swift */; };
+		73ECDDFEE0EA50A48B4E9F0F /* AutomaticScrollAccessTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7719266BC9AE64F9EFDE8FC3 /* AutomaticScrollAccessTests.swift */; };
+		758C46001EDB7FF365F237F1 /* PlatformCapabilityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 958EA124D54351E8EDEB14A1 /* PlatformCapabilityTests.swift */; };
+		790ED68D32A65F2A8B5B27F2 /* LightCaptureApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31C724B10A2B53CCCC3E8B48 /* LightCaptureApp.swift */; };
+		7D29A8F0CFD02EA09D7010CD /* ShapeAnnotationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41F58949F9600BFB15408A38 /* ShapeAnnotationTests.swift */; };
+		7E6DB9B0D7AFAC87FFD82184 /* CaptureEnvironmentMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 318CD7A89F5FB0D02E820E03 /* CaptureEnvironmentMonitor.swift */; };
+		7F8AE00D4B828F740D7B2F33 /* SelectionOverlayWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0D20243D79E1C7CD65583CA /* SelectionOverlayWindow.swift */; };
+		82CBF0D022490EDEE565E27D /* AssetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C855D4CF5583333BADC9060F /* AssetStore.swift */; };
+		8558ACD036C951E704321C39 /* LocalizationConfig.json in Resources */ = {isa = PBXBuildFile; fileRef = 3130F8B50976DB73AC2B4174 /* LocalizationConfig.json */; };
+		8B8BDC5507678E613D5770AD /* OverlapMatcherRobustnessTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81C8464E29A81DC704743BD2 /* OverlapMatcherRobustnessTests.swift */; };
+		9574D385B1593D6590062303 /* AnnotationEditorWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 854E11A4B3EDC1566C02637E /* AnnotationEditorWindowController.swift */; };
+		9685851F7F8F0878188679F9 /* L10n.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5D12B35AB5263A8828DDAE5 /* L10n.swift */; };
+		98DC88C0ED6C66B1D13FFF99 /* LocalizationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5121F76572C16D7D4FACB90 /* LocalizationTests.swift */; };
+		9975B888E57EE2737822AC59 /* CapturePermissionAuthorizationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AA7D7CAC124EB2755564C8A /* CapturePermissionAuthorizationTests.swift */; };
+		A61101B8649E0146DF128A09 /* CaptureFlowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D89A6577DEFB499A5CAC6073 /* CaptureFlowController.swift */; };
+		A68BADCE8419DFC43F974A5D /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 545AA564246F8AE2007DCB96 /* InfoPlist.xcstrings */; };
+		AE222F7D1481398ED84F29A8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C01A0CC01B47728D5559BEB8 /* Assets.xcassets */; };
+		AF42B7D720F34FFB6C07725D /* CaptureModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BAB14DBE04CE150D81C9189 /* CaptureModelTests.swift */; };
+		B14F3826DEF65944FEEF77A7 /* AutomaticScrollAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86243839E5813278AE42AF7D /* AutomaticScrollAccess.swift */; };
+		C017C0AEDCEB7EC9D84D2B3A /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7FD90B465D7AA34C9C9D413 /* AppDelegate.swift */; };
+		C52E8CD05A3BC680B72BF582 /* AppRelauncher.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2F1601F750BAFCCDFB2AA10 /* AppRelauncher.swift */; };
+		CAB77BE5AFE156FD930B2FD6 /* CapturePermissionAuthorization.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFBBEBF57633AA703862F3C7 /* CapturePermissionAuthorization.swift */; };
+		CD170AC2DB502446ADD76137 /* InlineAnnotationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA6F0087BD3FE21DD81C62C0 /* InlineAnnotationTests.swift */; };
+		CE4B7B2834C2F65AB68C10C8 /* SelectionToolbarLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7DE09D74FDCDA6271D2D2C7 /* SelectionToolbarLayout.swift */; };
+		CFFA25686E9355956C6377D9 /* SettingsWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25A474D29250DAF2269CCE97 /* SettingsWindowController.swift */; };
+		D2B9CD7F96FCF7A5C02AD2B1 /* LongCaptureEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 268003E54800E62A5016CFF9 /* LongCaptureEngine.swift */; };
+		DDFBB6541C92F527BFAB9302 /* AnnotationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F5BCD55104E3E123C61D026 /* AnnotationTests.swift */; };
+		DEAE40832C0516A0400A1FD5 /* PermissionHelpWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92BB38856634495C976B259B /* PermissionHelpWindowController.swift */; };
+		E26A9779C5AE527C4A953195 /* HotKeyService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6EB4B633BD79033AD7710BE /* HotKeyService.swift */; };
+		E37F694FA2D6211006F914E6 /* AnnotationRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26A27E8D7D4333498FDD14B5 /* AnnotationRenderer.swift */; };
+		E5B19170356D253FC9B1A169 /* AnnotationCanvasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9DC2A090B03A4F9B5ECF14A /* AnnotationCanvasView.swift */; };
+		EEBA08ADBB16B9E89D917DD5 /* LongCaptureController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91A87232EF213436AA9175FD /* LongCaptureController.swift */; };
+		F719938F369FB43D6E42109A /* LegacyPreferencesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7442AF8D31FDC5D987153DAD /* LegacyPreferencesTests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		830E2806C9AFF15201901F1B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = CE5BC67EC2955EF681D0CFC0 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = C5A0C172C2B58C2F0A8150C7;
+			remoteInfo = OpenLightCapture;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		1DE1C59079411D0EDFF42064 /* LightCaptureTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LightCaptureTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		1E730B71BB2DFE02CAF9A730 /* AutomaticScrollEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutomaticScrollEvent.swift; sourceTree = "<group>"; };
+		25A474D29250DAF2269CCE97 /* SettingsWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindowController.swift; sourceTree = "<group>"; };
+		268003E54800E62A5016CFF9 /* LongCaptureEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LongCaptureEngine.swift; sourceTree = "<group>"; };
+		26A27E8D7D4333498FDD14B5 /* AnnotationRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnotationRenderer.swift; sourceTree = "<group>"; };
+		2AA7D7CAC124EB2755564C8A /* CapturePermissionAuthorizationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapturePermissionAuthorizationTests.swift; sourceTree = "<group>"; };
+		2D5640356EE20709CC9AC2DD /* AnnotationStyleConsistencyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnotationStyleConsistencyTests.swift; sourceTree = "<group>"; };
+		3130F8B50976DB73AC2B4174 /* LocalizationConfig.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = LocalizationConfig.json; sourceTree = "<group>"; };
+		318CD7A89F5FB0D02E820E03 /* CaptureEnvironmentMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureEnvironmentMonitor.swift; sourceTree = "<group>"; };
+		31C724B10A2B53CCCC3E8B48 /* LightCaptureApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightCaptureApp.swift; sourceTree = "<group>"; };
+		363AC92047AF34A72E5F5516 /* DisplayTransform.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayTransform.swift; sourceTree = "<group>"; };
+		3D8CFA094D37A8D3A0305E6C /* LocalizationContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalizationContext.swift; sourceTree = "<group>"; };
+		41F58949F9600BFB15408A38 /* ShapeAnnotationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShapeAnnotationTests.swift; sourceTree = "<group>"; };
+		4316DA64A711042B2BC85B8D /* AutomaticScrollTarget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutomaticScrollTarget.swift; sourceTree = "<group>"; };
+		4F5BCD55104E3E123C61D026 /* AnnotationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnotationTests.swift; sourceTree = "<group>"; };
+		545AA564246F8AE2007DCB96 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
+		5BAB14DBE04CE150D81C9189 /* CaptureModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureModelTests.swift; sourceTree = "<group>"; };
+		601645AD5202FEA865B25066 /* PermissionAlertPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionAlertPresenter.swift; sourceTree = "<group>"; };
+		6748D4CF94909D9019527E4C /* ScreenCaptureService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenCaptureService.swift; sourceTree = "<group>"; };
+		68171795A1B1DBE71B70B99B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		7442AF8D31FDC5D987153DAD /* LegacyPreferencesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegacyPreferencesTests.swift; sourceTree = "<group>"; };
+		7719266BC9AE64F9EFDE8FC3 /* AutomaticScrollAccessTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutomaticScrollAccessTests.swift; sourceTree = "<group>"; };
+		78F9FEC7CF50DC73F77EE0C6 /* CaptureSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureSession.swift; sourceTree = "<group>"; };
+		7B6C759D82446F0CF1B4DBDF /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		7D2B3B43A8970D1F9D23C75D /* EditorToolbarConsistencyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorToolbarConsistencyTests.swift; sourceTree = "<group>"; };
+		7EC2C2D92F2DDE3330C3345B /* ClipboardPublisher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardPublisher.swift; sourceTree = "<group>"; };
+		804E260C1C2770F88E766D60 /* ScreenCaptureStreamService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenCaptureStreamService.swift; sourceTree = "<group>"; };
+		81C8464E29A81DC704743BD2 /* OverlapMatcherRobustnessTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlapMatcherRobustnessTests.swift; sourceTree = "<group>"; };
+		854E11A4B3EDC1566C02637E /* AnnotationEditorWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnotationEditorWindowController.swift; sourceTree = "<group>"; };
+		86243839E5813278AE42AF7D /* AutomaticScrollAccess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutomaticScrollAccess.swift; sourceTree = "<group>"; };
+		8BAD7B15B99AC8B3D1C4A860 /* TileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TileStore.swift; sourceTree = "<group>"; };
+		90CA2EA6A7F5F04C413BBC78 /* OpenLightCapture.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OpenLightCapture.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		91A87232EF213436AA9175FD /* LongCaptureController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LongCaptureController.swift; sourceTree = "<group>"; };
+		9253008ECAA817E0634E2423 /* LongCaptureEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LongCaptureEngineTests.swift; sourceTree = "<group>"; };
+		92BB38856634495C976B259B /* PermissionHelpWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionHelpWindowController.swift; sourceTree = "<group>"; };
+		93E22768C2B7198A3D45C2F3 /* LocalizationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalizationStore.swift; sourceTree = "<group>"; };
+		958EA124D54351E8EDEB14A1 /* PlatformCapabilityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlatformCapabilityTests.swift; sourceTree = "<group>"; };
+		9A87F05A9505C08FC46FD26B /* AnnotationToolbarStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnotationToolbarStyle.swift; sourceTree = "<group>"; };
+		B0E2BBA81346AC22A78F0BDA /* AnnotationDraggingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnotationDraggingTests.swift; sourceTree = "<group>"; };
+		C003CA8ACD613937C69FEDE0 /* FilenamePolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilenamePolicy.swift; sourceTree = "<group>"; };
+		C019956A6CC03090B7DCC307 /* AssetStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssetStoreTests.swift; sourceTree = "<group>"; };
+		C01A0CC01B47728D5559BEB8 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		C12C974B6C29D99FD268CD44 /* OutputDeliveryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutputDeliveryService.swift; sourceTree = "<group>"; };
+		C5D12B35AB5263A8828DDAE5 /* L10n.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = L10n.swift; sourceTree = "<group>"; };
+		C6EB4B633BD79033AD7710BE /* HotKeyService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotKeyService.swift; sourceTree = "<group>"; };
+		C716AB3FF12F97F2C50A722D /* LegacyPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegacyPreferences.swift; sourceTree = "<group>"; };
+		C7FD90B465D7AA34C9C9D413 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		C855D4CF5583333BADC9060F /* AssetStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssetStore.swift; sourceTree = "<group>"; };
+		C9DC2A090B03A4F9B5ECF14A /* AnnotationCanvasView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnotationCanvasView.swift; sourceTree = "<group>"; };
+		CD0A4A5FC697AFC77FE40C06 /* LocalizationConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalizationConfiguration.swift; sourceTree = "<group>"; };
+		D0D20243D79E1C7CD65583CA /* SelectionOverlayWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectionOverlayWindow.swift; sourceTree = "<group>"; };
+		D24DEB7497A65C1D5DC56CF1 /* AnnotationDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnotationDocument.swift; sourceTree = "<group>"; };
+		D2F1601F750BAFCCDFB2AA10 /* AppRelauncher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRelauncher.swift; sourceTree = "<group>"; };
+		D5121F76572C16D7D4FACB90 /* LocalizationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalizationTests.swift; sourceTree = "<group>"; };
+		D66779471AAECD275423CC83 /* LongCaptureControlPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LongCaptureControlPanel.swift; sourceTree = "<group>"; };
+		D7DE09D74FDCDA6271D2D2C7 /* SelectionToolbarLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectionToolbarLayout.swift; sourceTree = "<group>"; };
+		D89A6577DEFB499A5CAC6073 /* CaptureFlowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureFlowController.swift; sourceTree = "<group>"; };
+		DFBBEBF57633AA703862F3C7 /* CapturePermissionAuthorization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapturePermissionAuthorization.swift; sourceTree = "<group>"; };
+		E948CBB81FC1BBCA115CF0A9 /* OverlapMatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlapMatcher.swift; sourceTree = "<group>"; };
+		EA6F0087BD3FE21DD81C62C0 /* InlineAnnotationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InlineAnnotationTests.swift; sourceTree = "<group>"; };
+		F696585CFDA54B23B02E86F2 /* CGImageCoordinates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CGImageCoordinates.swift; sourceTree = "<group>"; };
+		FF366FFF408C254F11FC01F5 /* AnnotationStyleControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnotationStyleControls.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		25B5B9F9A9883095110DC547 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				C7FD90B465D7AA34C9C9D413 /* AppDelegate.swift */,
+				D2F1601F750BAFCCDFB2AA10 /* AppRelauncher.swift */,
+				318CD7A89F5FB0D02E820E03 /* CaptureEnvironmentMonitor.swift */,
+				C6EB4B633BD79033AD7710BE /* HotKeyService.swift */,
+				C716AB3FF12F97F2C50A722D /* LegacyPreferences.swift */,
+				31C724B10A2B53CCCC3E8B48 /* LightCaptureApp.swift */,
+				601645AD5202FEA865B25066 /* PermissionAlertPresenter.swift */,
+				92BB38856634495C976B259B /* PermissionHelpWindowController.swift */,
+				25A474D29250DAF2269CCE97 /* SettingsWindowController.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		2AB625ACF2C011FD1CA302F8 /* Stitching */ = {
+			isa = PBXGroup;
+			children = (
+				268003E54800E62A5016CFF9 /* LongCaptureEngine.swift */,
+				E948CBB81FC1BBCA115CF0A9 /* OverlapMatcher.swift */,
+				8BAD7B15B99AC8B3D1C4A860 /* TileStore.swift */,
+			);
+			path = Stitching;
+			sourceTree = "<group>";
+		};
+		2D5969491CF0FF3D57CD8710 /* LightCapture */ = {
+			isa = PBXGroup;
+			children = (
+				90895A002001C7CEA58FDF73 /* Annotation */,
+				25B5B9F9A9883095110DC547 /* App */,
+				6086224875196B751EAA09D4 /* Capture */,
+				30CD3F6FB8D6DA6B25B76EBA /* Localization */,
+				EAC38583F44B4E8A99516FC3 /* Output */,
+				E97F146661F76B0271F57CEB /* Overlay */,
+				7CEFCC8183D5031D1CCE7373 /* Resources */,
+				421EB5469E785B9B91B30861 /* Session */,
+				2AB625ACF2C011FD1CA302F8 /* Stitching */,
+			);
+			path = LightCapture;
+			sourceTree = "<group>";
+		};
+		30CD3F6FB8D6DA6B25B76EBA /* Localization */ = {
+			isa = PBXGroup;
+			children = (
+				C5D12B35AB5263A8828DDAE5 /* L10n.swift */,
+				CD0A4A5FC697AFC77FE40C06 /* LocalizationConfiguration.swift */,
+				3D8CFA094D37A8D3A0305E6C /* LocalizationContext.swift */,
+				93E22768C2B7198A3D45C2F3 /* LocalizationStore.swift */,
+			);
+			path = Localization;
+			sourceTree = "<group>";
+		};
+		421EB5469E785B9B91B30861 /* Session */ = {
+			isa = PBXGroup;
+			children = (
+				D89A6577DEFB499A5CAC6073 /* CaptureFlowController.swift */,
+				78F9FEC7CF50DC73F77EE0C6 /* CaptureSession.swift */,
+				91A87232EF213436AA9175FD /* LongCaptureController.swift */,
+			);
+			path = Session;
+			sourceTree = "<group>";
+		};
+		4776857F5C5752BE710CDBC9 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				1DE1C59079411D0EDFF42064 /* LightCaptureTests.xctest */,
+				90CA2EA6A7F5F04C413BBC78 /* OpenLightCapture.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		6086224875196B751EAA09D4 /* Capture */ = {
+			isa = PBXGroup;
+			children = (
+				86243839E5813278AE42AF7D /* AutomaticScrollAccess.swift */,
+				1E730B71BB2DFE02CAF9A730 /* AutomaticScrollEvent.swift */,
+				4316DA64A711042B2BC85B8D /* AutomaticScrollTarget.swift */,
+				DFBBEBF57633AA703862F3C7 /* CapturePermissionAuthorization.swift */,
+				F696585CFDA54B23B02E86F2 /* CGImageCoordinates.swift */,
+				363AC92047AF34A72E5F5516 /* DisplayTransform.swift */,
+				D66779471AAECD275423CC83 /* LongCaptureControlPanel.swift */,
+				6748D4CF94909D9019527E4C /* ScreenCaptureService.swift */,
+				804E260C1C2770F88E766D60 /* ScreenCaptureStreamService.swift */,
+			);
+			path = Capture;
+			sourceTree = "<group>";
+		};
+		7444B2A9DB3F11C4EA6EC21D = {
+			isa = PBXGroup;
+			children = (
+				2D5969491CF0FF3D57CD8710 /* LightCapture */,
+				E9B151EC26A386E1C28E534F /* LightCaptureTests */,
+				4776857F5C5752BE710CDBC9 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		7CEFCC8183D5031D1CCE7373 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				C01A0CC01B47728D5559BEB8 /* Assets.xcassets */,
+				68171795A1B1DBE71B70B99B /* Info.plist */,
+				545AA564246F8AE2007DCB96 /* InfoPlist.xcstrings */,
+				7B6C759D82446F0CF1B4DBDF /* Localizable.xcstrings */,
+				3130F8B50976DB73AC2B4174 /* LocalizationConfig.json */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		90895A002001C7CEA58FDF73 /* Annotation */ = {
+			isa = PBXGroup;
+			children = (
+				C9DC2A090B03A4F9B5ECF14A /* AnnotationCanvasView.swift */,
+				D24DEB7497A65C1D5DC56CF1 /* AnnotationDocument.swift */,
+				854E11A4B3EDC1566C02637E /* AnnotationEditorWindowController.swift */,
+				26A27E8D7D4333498FDD14B5 /* AnnotationRenderer.swift */,
+				FF366FFF408C254F11FC01F5 /* AnnotationStyleControls.swift */,
+				9A87F05A9505C08FC46FD26B /* AnnotationToolbarStyle.swift */,
+			);
+			path = Annotation;
+			sourceTree = "<group>";
+		};
+		E97F146661F76B0271F57CEB /* Overlay */ = {
+			isa = PBXGroup;
+			children = (
+				D0D20243D79E1C7CD65583CA /* SelectionOverlayWindow.swift */,
+				D7DE09D74FDCDA6271D2D2C7 /* SelectionToolbarLayout.swift */,
+			);
+			path = Overlay;
+			sourceTree = "<group>";
+		};
+		E9B151EC26A386E1C28E534F /* LightCaptureTests */ = {
+			isa = PBXGroup;
+			children = (
+				B0E2BBA81346AC22A78F0BDA /* AnnotationDraggingTests.swift */,
+				2D5640356EE20709CC9AC2DD /* AnnotationStyleConsistencyTests.swift */,
+				4F5BCD55104E3E123C61D026 /* AnnotationTests.swift */,
+				C019956A6CC03090B7DCC307 /* AssetStoreTests.swift */,
+				7719266BC9AE64F9EFDE8FC3 /* AutomaticScrollAccessTests.swift */,
+				5BAB14DBE04CE150D81C9189 /* CaptureModelTests.swift */,
+				2AA7D7CAC124EB2755564C8A /* CapturePermissionAuthorizationTests.swift */,
+				7D2B3B43A8970D1F9D23C75D /* EditorToolbarConsistencyTests.swift */,
+				EA6F0087BD3FE21DD81C62C0 /* InlineAnnotationTests.swift */,
+				7442AF8D31FDC5D987153DAD /* LegacyPreferencesTests.swift */,
+				D5121F76572C16D7D4FACB90 /* LocalizationTests.swift */,
+				9253008ECAA817E0634E2423 /* LongCaptureEngineTests.swift */,
+				81C8464E29A81DC704743BD2 /* OverlapMatcherRobustnessTests.swift */,
+				958EA124D54351E8EDEB14A1 /* PlatformCapabilityTests.swift */,
+				41F58949F9600BFB15408A38 /* ShapeAnnotationTests.swift */,
+			);
+			path = LightCaptureTests;
+			sourceTree = "<group>";
+		};
+		EAC38583F44B4E8A99516FC3 /* Output */ = {
+			isa = PBXGroup;
+			children = (
+				C855D4CF5583333BADC9060F /* AssetStore.swift */,
+				7EC2C2D92F2DDE3330C3345B /* ClipboardPublisher.swift */,
+				C003CA8ACD613937C69FEDE0 /* FilenamePolicy.swift */,
+				C12C974B6C29D99FD268CD44 /* OutputDeliveryService.swift */,
+			);
+			path = Output;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		921D096465757EBD73DE69B9 /* LightCaptureTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4C8E6C4F61C0FEBAA358E0DB /* Build configuration list for PBXNativeTarget "LightCaptureTests" */;
+			buildPhases = (
+				2DD3B00DDFB35AFFF8BB70BC /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				0AF9C19CA3225E3F18838192 /* PBXTargetDependency */,
+			);
+			name = LightCaptureTests;
+			packageProductDependencies = (
+			);
+			productName = LightCaptureTests;
+			productReference = 1DE1C59079411D0EDFF42064 /* LightCaptureTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		C5A0C172C2B58C2F0A8150C7 /* OpenLightCapture */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 05D146811AFC2FFEBFD87CF9 /* Build configuration list for PBXNativeTarget "OpenLightCapture" */;
+			buildPhases = (
+				9A217A914D137CBAABDF9FAE /* Sources */,
+				07A31CCBE9D8A274AB8EAAFF /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = OpenLightCapture;
+			packageProductDependencies = (
+			);
+			productName = OpenLightCapture;
+			productReference = 90CA2EA6A7F5F04C413BBC78 /* OpenLightCapture.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		CE5BC67EC2955EF681D0CFC0 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+				};
+			};
+			buildConfigurationList = AB1805631EF7BA60E3C04E03 /* Build configuration list for PBXProject "OpenLightCapture" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+				"zh-Hans",
+			);
+			mainGroup = 7444B2A9DB3F11C4EA6EC21D;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 4776857F5C5752BE710CDBC9 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				921D096465757EBD73DE69B9 /* LightCaptureTests */,
+				C5A0C172C2B58C2F0A8150C7 /* OpenLightCapture */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		07A31CCBE9D8A274AB8EAAFF /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AE222F7D1481398ED84F29A8 /* Assets.xcassets in Resources */,
+				A68BADCE8419DFC43F974A5D /* InfoPlist.xcstrings in Resources */,
+				08CEE99D9E344260BD317AC4 /* Localizable.xcstrings in Resources */,
+				8558ACD036C951E704321C39 /* LocalizationConfig.json in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		2DD3B00DDFB35AFFF8BB70BC /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0E2F0DAE013C5AC3B2E3B75F /* AnnotationDraggingTests.swift in Sources */,
+				34C101528FFB6D61D4FDBD26 /* AnnotationStyleConsistencyTests.swift in Sources */,
+				DDFBB6541C92F527BFAB9302 /* AnnotationTests.swift in Sources */,
+				4698E9DDBB94F4FDEF0A58EE /* AssetStoreTests.swift in Sources */,
+				73ECDDFEE0EA50A48B4E9F0F /* AutomaticScrollAccessTests.swift in Sources */,
+				AF42B7D720F34FFB6C07725D /* CaptureModelTests.swift in Sources */,
+				9975B888E57EE2737822AC59 /* CapturePermissionAuthorizationTests.swift in Sources */,
+				34DE61721CF1A542C225E639 /* EditorToolbarConsistencyTests.swift in Sources */,
+				CD170AC2DB502446ADD76137 /* InlineAnnotationTests.swift in Sources */,
+				F719938F369FB43D6E42109A /* LegacyPreferencesTests.swift in Sources */,
+				98DC88C0ED6C66B1D13FFF99 /* LocalizationTests.swift in Sources */,
+				6929BEC0BF26E13CE5EB23D9 /* LongCaptureEngineTests.swift in Sources */,
+				8B8BDC5507678E613D5770AD /* OverlapMatcherRobustnessTests.swift in Sources */,
+				758C46001EDB7FF365F237F1 /* PlatformCapabilityTests.swift in Sources */,
+				7D29A8F0CFD02EA09D7010CD /* ShapeAnnotationTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9A217A914D137CBAABDF9FAE /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E5B19170356D253FC9B1A169 /* AnnotationCanvasView.swift in Sources */,
+				391D9DC75EB4603B37AF0199 /* AnnotationDocument.swift in Sources */,
+				9574D385B1593D6590062303 /* AnnotationEditorWindowController.swift in Sources */,
+				E37F694FA2D6211006F914E6 /* AnnotationRenderer.swift in Sources */,
+				67E96FF52FD2FC953FE73BE7 /* AnnotationStyleControls.swift in Sources */,
+				43DB25CF1CED2FB957F51AE9 /* AnnotationToolbarStyle.swift in Sources */,
+				C017C0AEDCEB7EC9D84D2B3A /* AppDelegate.swift in Sources */,
+				C52E8CD05A3BC680B72BF582 /* AppRelauncher.swift in Sources */,
+				82CBF0D022490EDEE565E27D /* AssetStore.swift in Sources */,
+				B14F3826DEF65944FEEF77A7 /* AutomaticScrollAccess.swift in Sources */,
+				072DB87F997501D7096B0DBD /* AutomaticScrollEvent.swift in Sources */,
+				26B53485A0906F470C78C95F /* AutomaticScrollTarget.swift in Sources */,
+				4E054AAA942C612D76BCE7C9 /* CGImageCoordinates.swift in Sources */,
+				7E6DB9B0D7AFAC87FFD82184 /* CaptureEnvironmentMonitor.swift in Sources */,
+				A61101B8649E0146DF128A09 /* CaptureFlowController.swift in Sources */,
+				CAB77BE5AFE156FD930B2FD6 /* CapturePermissionAuthorization.swift in Sources */,
+				40ED10F3C4FA46C71811BE12 /* CaptureSession.swift in Sources */,
+				50220445BE07E7E20E77A264 /* ClipboardPublisher.swift in Sources */,
+				2D8FAD8EE7E80C6619509FCE /* DisplayTransform.swift in Sources */,
+				07C535D0776EB34636BC3BC5 /* FilenamePolicy.swift in Sources */,
+				E26A9779C5AE527C4A953195 /* HotKeyService.swift in Sources */,
+				9685851F7F8F0878188679F9 /* L10n.swift in Sources */,
+				216C28CBE530604D6D98F07B /* LegacyPreferences.swift in Sources */,
+				790ED68D32A65F2A8B5B27F2 /* LightCaptureApp.swift in Sources */,
+				3731E3375877DABFF17A2516 /* LocalizationConfiguration.swift in Sources */,
+				1803CBED8B7CFF9383029304 /* LocalizationContext.swift in Sources */,
+				5EF2AB1A052F52921653F50C /* LocalizationStore.swift in Sources */,
+				6F136A4EB6C8B07E633E6504 /* LongCaptureControlPanel.swift in Sources */,
+				EEBA08ADBB16B9E89D917DD5 /* LongCaptureController.swift in Sources */,
+				D2B9CD7F96FCF7A5C02AD2B1 /* LongCaptureEngine.swift in Sources */,
+				230E10E5853C7AE041161063 /* OutputDeliveryService.swift in Sources */,
+				10DBABB80D87E1DFBBDD5C6D /* OverlapMatcher.swift in Sources */,
+				580FBB2550916C738A56D620 /* PermissionAlertPresenter.swift in Sources */,
+				DEAE40832C0516A0400A1FD5 /* PermissionHelpWindowController.swift in Sources */,
+				263F817823BC5416F499FD3C /* ScreenCaptureService.swift in Sources */,
+				6DEBAC2D32715F350C4FB1A5 /* ScreenCaptureStreamService.swift in Sources */,
+				7F8AE00D4B828F740D7B2F33 /* SelectionOverlayWindow.swift in Sources */,
+				CE4B7B2834C2F65AB68C10C8 /* SelectionToolbarLayout.swift in Sources */,
+				CFFA25686E9355956C6377D9 /* SettingsWindowController.swift in Sources */,
+				3CE0B58CB3A76F416710D5B6 /* TileStore.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		0AF9C19CA3225E3F18838192 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = C5A0C172C2B58C2F0A8150C7 /* OpenLightCapture */;
+			targetProxy = 830E2806C9AFF15201901F1B /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		09971E990534D4015C5B2B23 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGNING_ALLOWED = YES;
+				CODE_SIGN_IDENTITY = "-";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		4BD983F1D7F5426FB5F422DE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				COMBINE_HIDPI_IMAGES = YES;
+				EXECUTABLE_NAME = OpenLightCapture;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = LightCapture/Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.evilstar2016.openlightcapture;
+				PRODUCT_MODULE_NAME = LightCapture;
+				PRODUCT_NAME = OpenLightCapture;
+				SDKROOT = macosx;
+				SWIFT_STRICT_CONCURRENCY = complete;
+			};
+			name = Release;
+		};
+		ADEEDA40B0206A89FE120654 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGNING_ALLOWED = YES;
+				CODE_SIGN_IDENTITY = "-";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		D5362A67873209B8B8092D5F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				COMBINE_HIDPI_IMAGES = YES;
+				EXECUTABLE_NAME = OpenLightCapture;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = LightCapture/Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.evilstar2016.openlightcapture;
+				PRODUCT_MODULE_NAME = LightCapture;
+				PRODUCT_NAME = OpenLightCapture;
+				SDKROOT = macosx;
+				SWIFT_STRICT_CONCURRENCY = complete;
+			};
+			name = Debug;
+		};
+		E0EC50D54EE6715911C01840 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.evilstar2016.openlightcapture.tests;
+				SDKROOT = macosx;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/OpenLightCapture.app/Contents/MacOS/OpenLightCapture";
+			};
+			name = Release;
+		};
+		EFE46A656CA5F3701FA62F3C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.evilstar2016.openlightcapture.tests;
+				SDKROOT = macosx;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/OpenLightCapture.app/Contents/MacOS/OpenLightCapture";
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		05D146811AFC2FFEBFD87CF9 /* Build configuration list for PBXNativeTarget "OpenLightCapture" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D5362A67873209B8B8092D5F /* Debug */,
+				4BD983F1D7F5426FB5F422DE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		4C8E6C4F61C0FEBAA358E0DB /* Build configuration list for PBXNativeTarget "LightCaptureTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EFE46A656CA5F3701FA62F3C /* Debug */,
+				E0EC50D54EE6715911C01840 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		AB1805631EF7BA60E3C04E03 /* Build configuration list for PBXProject "OpenLightCapture" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				ADEEDA40B0206A89FE120654 /* Debug */,
+				09971E990534D4015C5B2B23 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = CE5BC67EC2955EF681D0CFC0 /* Project object */;
+}

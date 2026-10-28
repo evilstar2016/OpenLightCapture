@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+- name: Security / 安全报告
+  url: https://github.com/evilstar2016/OpenLightCapture/security/policy
+  about: Report sensitive issues through the security policy / 敏感问题请按安全政策报告
+- name: Usage help / 使用帮助
+  url: https://github.com/evilstar2016/OpenLightCapture/blob/main/SUPPORT.md
+  about: Read troubleshooting and report requirements / 先阅读排查步骤与反馈材料要求

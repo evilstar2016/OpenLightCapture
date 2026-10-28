@@ -1,0 +1,71 @@
+name: Bug report / 问题反馈
+description: 报告可复现的问题 / Report a reproducible problem
+title: '[Bug] '
+body:
+- type: markdown
+  attributes:
+    value: '请使用脱敏内容或合成样本。安全漏洞请按 SECURITY.md 私密报告，不要在此公开利用细节。
+
+      Use redacted or synthetic data. Report vulnerabilities through SECURITY.md, not a public exploit report.'
+- type: input
+  id: version
+  attributes:
+    label: Version / 版本与构建号
+    placeholder: 0.5.1 (24), or commit SHA
+  validations:
+    required: true
+- type: input
+  id: environment
+  attributes:
+    label: Environment / 系统与设备
+    description: macOS version, Apple Silicon/Intel, display scaling / macOS 版本、芯片、显示器缩放
+  validations:
+    required: true
+- type: dropdown
+  id: mode
+  attributes:
+    label: Area / 涉及功能
+    options:
+    - Area capture / 区域截图
+    - Window capture / 窗口截图
+    - Manual scrolling / 手动长图
+    - Automatic scrolling / 自动长图
+    - Annotations or output / 标注或输出
+    - Settings or language / 设置或语言
+    - Other / 其他
+  validations:
+    required: true
+- type: textarea
+  id: steps
+  attributes:
+    label: Steps / 复现步骤
+    description: Include target app and capture mode; prefer a synthetic example. / 说明目标应用与截图方式，优先使用合成样本。
+  validations:
+    required: true
+- type: textarea
+  id: expected
+  attributes:
+    label: Expected / 预期行为
+  validations:
+    required: true
+- type: textarea
+  id: actual
+  attributes:
+    label: Actual / 实际行为
+    description: Include the exact error or partial-result message, if any. / 如有错误或部分结果提示，请提供原文。
+  validations:
+    required: true
+- type: textarea
+  id: evidence
+  attributes:
+    label: Evidence / 可选证据
+    description: Redacted screenshot or relevant log excerpt only; no full private asset/work directories. / 仅附脱敏截图或必要日志片段，不上传整个私人暂存目录。
+- type: checkboxes
+  id: checks
+  attributes:
+    label: Before submitting / 提交前
+    options:
+    - label: I searched existing issues / 我已搜索已有问题
+      required: true
+    - label: I removed private or sensitive content / 我已移除私密或敏感内容
+      required: true

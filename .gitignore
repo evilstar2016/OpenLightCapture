@@ -1,0 +1,23 @@
+# macOS
+.DS_Store
+._*
+
+# Swift / Xcode generated files and local settings
+.build/
+build/
+DerivedData/
+xcuserdata/
+*.xcuserstate
+*.xcarchive/
+*.dSYM/
+
+# Local planning, drafts, reports and generated assets
+.workbuddy/
+artifacts/
+docs/design/
+docs/requirement/
+docs/research/
+docs/trace/
+docs/trase/
+docs/verification/
+test_cases/
