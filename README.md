@@ -26,7 +26,7 @@
 
 ## 项目状态与支持范围
 
-当前开发版本为 **0.5.2（构建 26，未发布）**。
+当前版本为 **1.0.0（构建 27）**。
 
 - 目标系统：macOS 14 及以上。
 - 构建架构：Apple Silicon `arm64` 与 Intel `x86_64`。Intel 和更早 macOS 的实机覆盖尚不完整。
@@ -37,7 +37,9 @@
 
 ## 获取与构建
 
-OpenLightCapture 尚未发布安装包，目前请从源码构建。应用支持 Apple Silicon 和 Intel。
+下载 [OpenLightCapture 1.0.0 通用 DMG](https://github.com/evilstar2016/OpenLightCapture/releases/download/v1.0.0/OpenLightCapture-1.0.0-macOS-universal.dmg)，打开后将 `OpenLightCapture.app` 拖到 `Applications`。应用支持 Apple Silicon 和 Intel。
+
+[发布说明](https://github.com/evilstar2016/OpenLightCapture/releases/tag/v1.0.0) · [SHA-256 校验和](https://github.com/evilstar2016/OpenLightCapture/releases/download/v1.0.0/OpenLightCapture-1.0.0-macOS-universal.dmg.sha256)。包内应用采用 ad hoc 签名，尚未完成 Developer ID 签名与 Apple 公证，macOS 可能阻止首次启动。也可以使用下面的命令从源码构建。
 
 本地构建采用 ad hoc 签名，尚未完成 Developer ID 签名与 Apple 公证。仓库不提交本机 `build/` 目录。
 
