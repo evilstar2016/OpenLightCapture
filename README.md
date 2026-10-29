@@ -37,6 +37,26 @@
 
 ## 获取与构建
 
+### Homebrew Cask
+
+通过[维护者 Tap](https://github.com/evilstar2016/homebrew-tap)安装：
+
+```sh
+brew install --cask evilstar2016/tap/openlightcapture
+```
+
+此完整名称会自动添加 Tap，Homebrew 6 及以上仅信任这个 Cask。升级与卸载：
+
+```sh
+brew update
+brew upgrade --cask evilstar2016/tap/openlightcapture
+brew uninstall --cask evilstar2016/tap/openlightcapture
+```
+
+Cask 使用下方同一份官方 DMG 和 SHA-256 校验值，保留系统安全检查；当前应用的 ad hoc 签名与未公证状态仍然适用。卸载保留偏好设置与截图数据。
+
+### DMG 与源码
+
 下载 [OpenLightCapture 1.0.0 通用 DMG](https://github.com/evilstar2016/OpenLightCapture/releases/download/v1.0.0/OpenLightCapture-1.0.0-macOS-universal.dmg)，打开后将 `OpenLightCapture.app` 拖到 `Applications`。应用支持 Apple Silicon 和 Intel。
 
 [发布说明](https://github.com/evilstar2016/OpenLightCapture/releases/tag/v1.0.0) · [SHA-256 校验和](https://github.com/evilstar2016/OpenLightCapture/releases/download/v1.0.0/OpenLightCapture-1.0.0-macOS-universal.dmg.sha256)。包内应用采用 ad hoc 签名，尚未完成 Developer ID 签名与 Apple 公证，macOS 可能阻止首次启动。也可以使用下面的命令从源码构建。

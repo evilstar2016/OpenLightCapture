@@ -37,6 +37,26 @@ See [Known limitations](docs/USER_GUIDE.md#limits) and the [development checks](
 
 ## Get the app
 
+### Homebrew Cask
+
+Install from the [maintainer tap](https://github.com/evilstar2016/homebrew-tap):
+
+```sh
+brew install --cask evilstar2016/tap/openlightcapture
+```
+
+The fully qualified name adds the tap automatically and, on Homebrew 6 or later, trusts only this cask. Upgrade and uninstall:
+
+```sh
+brew update
+brew upgrade --cask evilstar2016/tap/openlightcapture
+brew uninstall --cask evilstar2016/tap/openlightcapture
+```
+
+The cask uses the same upstream DMG and SHA-256 checksum listed below and preserves macOS security checks. The app remains ad hoc signed and not notarized. Uninstalling preserves preferences and capture data.
+
+### DMG and source
+
 Download the [OpenLightCapture 1.0.0 universal DMG](https://github.com/evilstar2016/OpenLightCapture/releases/download/v1.0.0/OpenLightCapture-1.0.0-macOS-universal.dmg), open it, and drag `OpenLightCapture.app` to `Applications`. Both Apple Silicon and Intel are supported.
 
 [Release notes](https://github.com/evilstar2016/OpenLightCapture/releases/tag/v1.0.0) · [SHA-256 checksum](https://github.com/evilstar2016/OpenLightCapture/releases/download/v1.0.0/OpenLightCapture-1.0.0-macOS-universal.dmg.sha256). The bundled app uses ad hoc signing without Developer ID signing or Apple notarization; macOS may block its first launch. You can also build from source using the commands below.

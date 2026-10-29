@@ -41,6 +41,12 @@ hdiutil verify build/OpenLightCapture-1.0.0-macOS-universal.dmg
 
 `build/` 和临时 staging 都是生成产物，打包脚本退出时清理自己的 staging；不要把临时目录或旧版本误作发行源。
 
+## Homebrew Cask
+
+[维护者 Tap](https://github.com/evilstar2016/homebrew-tap) 中的 `Casks/openlightcapture.rb` 固定使用已发布 DMG 的版本和 SHA-256。发布新版本后，用公开下载的最终文件核对摘要，再更新 Tap 的 `version` 与 `sha256`；不要修改旧版本的安装包来替代版本更新。`livecheck` 可发现新的上游版本，但用户的 `brew upgrade` 需要 Tap 中的版本元数据先更新。
+
+在 Tap 仓库运行 `brew style Casks/openlightcapture.rb`，并对 `evilstar2016/tap/openlightcapture` 执行 `brew audit --cask --strict --online`、`brew livecheck --cask` 和 `brew fetch --cask`。使用临时 `--appdir` 验证安装、包内版本、签名与卸载，避免覆盖已有安装。不移除隔离属性、不禁用 Gatekeeper；签名和公证状态应在 Cask 提示、README 与 Release 中保持一致。
+
 ## English summary
 
 Before a release, review the license, third-party notices, selected commit, support scope, and repository settings. Enable private vulnerability reporting separately from adding SECURITY.md. Ensure the README matches the actual artifacts.
