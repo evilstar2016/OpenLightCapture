@@ -7,7 +7,8 @@ final class AutomaticScrollAccessTests: XCTestCase {
     func testGrantedAccessPostsNativeWheelForTheVisibleBoundWindow() throws {
         let target = try target()
         var postedWindows: [CGWindowID] = []
-        let access = AutomaticScrollAccess(preflight: { true }, resolveWindow: { _ in target.window }, resolveHitWindow: { _ in target.window }, postEvent: { event in
+        let access = AutomaticScrollAccess(preflight: { true }, resolveWindow: { _ in target.window }, resolveHitWindow: { _ in target.window }, postEvent: { event, processID in
+            XCTAssertEqual(processID, target.window.processIdentifier)
             postedWindows.append(CGWindowID(event.getIntegerValueField(.eventSourceUserData)))
             XCTAssertEqual(event.type, .scrollWheel)
             XCTAssertEqual(event.getIntegerValueField(.eventSourceUserData), Int64(target.window.id))
@@ -22,7 +23,7 @@ final class AutomaticScrollAccessTests: XCTestCase {
         let target = try target()
         var postedEvents = 0
         var windowLookups = 0
-        let access = AutomaticScrollAccess(preflight: { false }, resolveWindow: { _ in windowLookups += 1; return target.window }, resolveHitWindow: { _ in target.window }, postEvent: { _ in postedEvents += 1 })
+        let access = AutomaticScrollAccess(preflight: { false }, resolveWindow: { _ in windowLookups += 1; return target.window }, resolveHitWindow: { _ in target.window }, postEvent: { _, _ in postedEvents += 1 })
         let event = try scrollEvent(target)
         for _ in 0 ..< 20 {
             XCTAssertFalse(access.hasAccess)
@@ -36,7 +37,7 @@ final class AutomaticScrollAccessTests: XCTestCase {
         let target = try target()
         var granted = true
         var postedEvents = 0
-        let access = AutomaticScrollAccess(preflight: { granted }, resolveWindow: { _ in target.window }, resolveHitWindow: { _ in target.window }, postEvent: { _ in postedEvents += 1 })
+        let access = AutomaticScrollAccess(preflight: { granted }, resolveWindow: { _ in target.window }, resolveHitWindow: { _ in target.window }, postEvent: { _, _ in postedEvents += 1 })
         let event = try scrollEvent(target)
         XCTAssertEqual(access.postIfAllowed(event, to: target), .posted)
         granted = false
@@ -55,7 +56,7 @@ final class AutomaticScrollAccessTests: XCTestCase {
                                             CapturedWindow(id: 123, processIdentifier: 42, frame: target.window.frame.offsetBy(dx: 1, dy: 0))]
         var posted = 0
         for snapshot in snapshots {
-            let access = AutomaticScrollAccess(preflight: { true }, resolveWindow: { _ in snapshot }, resolveHitWindow: { _ in target.window }, postEvent: { _ in posted += 1 })
+            let access = AutomaticScrollAccess(preflight: { true }, resolveWindow: { _ in snapshot }, resolveHitWindow: { _ in target.window }, postEvent: { _, _ in posted += 1 })
             XCTAssertEqual(access.postIfAllowed(event, to: target), .targetUnavailable)
         }
         XCTAssertEqual(posted, 0)
@@ -65,7 +66,7 @@ final class AutomaticScrollAccessTests: XCTestCase {
         let target = try target()
         var currentWindow: CapturedWindow? = target.window
         var posted = 0
-        let access = AutomaticScrollAccess(preflight: { true }, resolveWindow: { _ in currentWindow }, resolveHitWindow: { _ in target.window }, postEvent: { _ in posted += 1 })
+        let access = AutomaticScrollAccess(preflight: { true }, resolveWindow: { _ in currentWindow }, resolveHitWindow: { _ in target.window }, postEvent: { _, _ in posted += 1 })
         let event = try scrollEvent(target)
         XCTAssertEqual(access.postIfAllowed(event, to: target), .posted)
         currentWindow = nil
@@ -78,7 +79,7 @@ final class AutomaticScrollAccessTests: XCTestCase {
     func testEventForAnotherWindowOrHitTestPointIsRejected() throws {
         let target = try target()
         var posted = 0
-        let access = AutomaticScrollAccess(preflight: { true }, resolveWindow: { _ in target.window }, resolveHitWindow: { _ in target.window }, postEvent: { _ in posted += 1 })
+        let access = AutomaticScrollAccess(preflight: { true }, resolveWindow: { _ in target.window }, resolveHitWindow: { _ in target.window }, postEvent: { _, _ in posted += 1 })
         let otherWindow = CapturedWindow(id: 124, processIdentifier: 42, frame: target.window.frame)
         let other = try XCTUnwrap(AutomaticScrollTarget(window: otherWindow, selection: CGRect(x: 200, y: 200, width: 200, height: 200)))
         XCTAssertEqual(try access.postIfAllowed(scrollEvent(other), to: target), .invalidEvent)
@@ -94,11 +95,51 @@ final class AutomaticScrollAccessTests: XCTestCase {
     func testWindowRelativeCoordinatesUsedByTheOldSenderAreRejected() throws {
         let target = try target()
         var posted = 0
-        let access = AutomaticScrollAccess(preflight: { true }, resolveWindow: { _ in target.window }, resolveHitWindow: { _ in target.window }, postEvent: { _ in posted += 1 })
+        let access = AutomaticScrollAccess(preflight: { true }, resolveWindow: { _ in target.window }, resolveHitWindow: { _ in target.window }, postEvent: { _, _ in posted += 1 })
         let event = try scrollEvent(target)
         event.location = CGPoint(x: 200, y: (NSScreen.screens.first?.frame.maxY ?? 0) - 200)
         XCTAssertEqual(access.postIfAllowed(event, to: target), .invalidEvent)
         XCTAssertEqual(posted, 0)
+    }
+
+    func testMissingOrForeignWindowRoutingNeverReachesTheProcess() throws {
+        let target = try target()
+        var posted = 0
+        let access = AutomaticScrollAccess(
+            preflight: { true }, resolveWindow: { _ in target.window },
+            resolveHitWindow: { _ in target.window }, postEvent: { _, _ in posted += 1 }
+        )
+        for windowID in [Int64(0), 124] {
+            let event = try scrollEvent(target)
+            try event.setIntegerValueField(XCTUnwrap(CGEventField(rawValue: 51)), value: windowID)
+            XCTAssertEqual(access.postIfAllowed(event, to: target), .invalidEvent)
+        }
+        XCTAssertEqual(posted, 0)
+    }
+
+    func testUnsupportedWindowCoordinateRoutingDoesNotProduceABareWheel() throws {
+        let target = try target()
+        var receivedPoint: CGPoint?
+        let event = AutomaticScrollEvent.make(
+            pixels: 80, target: target, primaryScreenHeight: 900,
+            setWindowLocation: { _, point in receivedPoint = point; return false }
+        )
+        XCTAssertEqual(receivedPoint, CGPoint(x: 200, y: 200))
+        XCTAssertNil(event)
+    }
+
+    func testWindowLocalCoordinatesAreIndependentOfDisplayOrigin() throws {
+        let target = try XCTUnwrap(AutomaticScrollTarget(
+            window: CapturedWindow(id: 123, processIdentifier: 42, frame: CGRect(x: -1200, y: -500, width: 900, height: 800)),
+            selection: CGRect(x: -1000, y: -300, width: 200, height: 200)
+        ))
+        var receivedPoint: CGPoint?
+        let event = try XCTUnwrap(AutomaticScrollEvent.make(
+            pixels: 80, target: target, primaryScreenHeight: 900,
+            setWindowLocation: { _, point in receivedPoint = point; return true }
+        ))
+        XCTAssertEqual(receivedPoint, CGPoint(x: 300, y: 300))
+        XCTAssertEqual(event.location, CGPoint(x: -900, y: 1100))
     }
 
     func testOcclusionBlocksSystemWheelInsteadOfScrollingAnotherWindow() throws {
@@ -116,7 +157,7 @@ final class AutomaticScrollAccessTests: XCTestCase {
                 resolveHitWindow: { point in
                     XCTAssertEqual(point, target.globalPoint)
                     return hitWindow
-                }, postEvent: { _ in posted += 1 }
+                }, postEvent: { _, _ in posted += 1 }
             )
             XCTAssertEqual(try access.postIfAllowed(scrollEvent(target), to: target), .targetUnavailable)
         }
@@ -129,7 +170,7 @@ final class AutomaticScrollAccessTests: XCTestCase {
         var posted = 0
         let access = AutomaticScrollAccess(
             preflight: { true }, resolveWindow: { _ in target.window },
-            resolveHitWindow: { _ in hitWindow }, postEvent: { _ in posted += 1 }
+            resolveHitWindow: { _ in hitWindow }, postEvent: { _, _ in posted += 1 }
         )
         let event = try scrollEvent(target)
         XCTAssertEqual(access.postIfAllowed(event, to: target), .posted)
@@ -141,7 +182,7 @@ final class AutomaticScrollAccessTests: XCTestCase {
     func testDeliveryHasNoPointerPositionIdleOrButtonPreconditions() throws {
         let target = try target()
         var posted = 0
-        let access = AutomaticScrollAccess(preflight: { true }, resolveWindow: { _ in target.window }, resolveHitWindow: { _ in target.window }, postEvent: { _ in posted += 1 })
+        let access = AutomaticScrollAccess(preflight: { true }, resolveWindow: { _ in target.window }, resolveHitWindow: { _ in target.window }, postEvent: { _, _ in posted += 1 })
         // No waiting for mouse idleness between consecutive deliveries. The
         // interface deliberately has no physical-pointer/button parameters.
         for _ in 0 ..< 20 {
