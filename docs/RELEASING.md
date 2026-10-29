@@ -19,7 +19,7 @@ bash scripts/verify.sh
 
 记录真实结果：测试数、失败/跳过项、Xcode/macOS、两种架构、实际 GUI 验收，以及仍未覆盖的系统或硬件。生成的本地报告不应未经脱敏就作为公开附件。
 
-当前为 OpenLightCapture 0.5.2 开发版（构建 25），尚未创建 v0.5.2 tag 或发布安装包。先提交版本源码并从该 commit 构建，核验最终产物后创建对应 tag 和 Release。
+当前为 OpenLightCapture 0.5.2 开发版（构建 26），尚未创建 v0.5.2 tag 或发布安装包。先提交版本源码并从该 commit 构建，核验最终产物后创建对应 tag 和 Release。
 
 ## 签名与公证
 

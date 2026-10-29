@@ -26,11 +26,11 @@
 
 ## 项目状态与支持范围
 
-当前开发版本为 **0.5.2（构建 25，未发布）**。
+当前开发版本为 **0.5.2（构建 26，未发布）**。
 
 - 目标系统：macOS 14 及以上。
 - 构建架构：Apple Silicon `arm64` 与 Intel `x86_64`。Intel 和更早 macOS 的实机覆盖尚不完整。
-- 在 macOS 27.0.1、Apple Silicon、Xcode 27.1 上完成更名验证：196 项 XCTest、arm64/x86_64 构建、签名和中英文本地化资源检查通过。新应用身份的真实权限与 GUI 流程仍需实机验收。
+- 在 macOS 27.0.1、Apple Silicon、Xcode 27.1 上完成验证：199 项 XCTest、arm64/x86_64 构建、签名和中英文本地化资源检查通过。新应用身份的真实权限与 GUI 流程仍需实机验收。
 - 当前本地构建使用 ad hoc 签名，尚未进行 Developer ID 签名或 Apple 公证。
 
 支持边界和历史验收情况见 [已知限制](docs/USER_GUIDE.md#limits) 与 [开发验证说明](docs/DEVELOPMENT.md)。
