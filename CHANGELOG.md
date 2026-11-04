@@ -2,7 +2,7 @@
 
 应用版本来自 `CFBundleShortVersionString`，构建号来自 `CFBundleVersion`。
 
-## 未发布 / Unreleased
+## 1.1.0 — 2026-11-04（Build 28）
 
 - 增加文字水印模板，支持单点或平铺，以及截图和长图编辑时的临时调整。
 - 增加 GIF 和无声 MP4/H.264 区域录制。GIF 可复制或保存，视频可预览并另存。

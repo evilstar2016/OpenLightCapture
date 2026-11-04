@@ -1,6 +1,6 @@
 # 隐私与本地数据 / Privacy and local data
 
-本文描述 OpenLightCapture 当前源码。文字水印、GIF 和无声视频录屏适用于源码构建。
+本文描述 OpenLightCapture 1.1.0 的数据处理方式。
 
 ## 中文
 
@@ -28,7 +28,7 @@
 ~/Library/Application Support/io.github.evilstar2016.openlightcapture/
   Assets/<asset-id>/       PNG/GIF 与 asset.json
   Working/<session-id>/    长图工作图块
-  Watermarks/templates.json  自定义文字水印模板与默认选择（源码新增）
+  Watermarks/templates.json  自定义文字水印模板与默认选择
   WorkingGIF/<attempt-id>/ GIF 原始帧与未发布结果
   WorkingVideo/<attempt-id>/ MP4 工作文件与未保存结果
   instance.lock           单实例运行锁
@@ -78,7 +78,7 @@ The current app implements no accounts, uploads, analytics, telemetry, or networ
 
 For the default bundle identifier, files live under `~/Library/Application Support/io.github.evilstar2016.openlightcapture/`: `Assets/` contains PNG/GIF files and asset metadata, `Working/` contains scrolling tiles, `WorkingGIF/` holds GIF raw frames and unpublished results, `WorkingVideo/` holds MP4 working files and unsaved results, and `instance.lock` enforces one running instance. Changing the bundle identifier changes the storage location.
 
-The unreleased source version also stores custom text watermark templates and the default choice in `Watermarks/templates.json`. Names, handles, and notices remain local. These files are retained independently of clipboard asset cleanup. Recovery makes a backup before resetting a damaged library; backups also remain until manually removed. Per-screenshot adjustments stay in the editing session and are not automatically saved to the template library.
+The app also stores custom text watermark templates and the default choice in `Watermarks/templates.json`. Names, handles, and notices remain local. These files are retained independently of clipboard asset cleanup. Recovery makes a backup before resetting a damaged library; backups also remain until manually removed. Per-screenshot adjustments stay in the editing session and are not automatically saved to the template library.
 
 The clipboard's current asset is retained for Finder paste after normal app exit. Replaced, retired assets are eligible for cleanup after at least 15 minutes while the app runs. Working files are cleaned during session disposal and startup cleanup; crashes can leave files behind. User-saved files elsewhere are not deleted by this cleanup. Availability across system restart is not guaranteed.
 
@@ -92,9 +92,9 @@ The system clipboard is shared by all apps; copying replaces its current content
 
 ### Clipboard, preferences, logs, and removal
 
-GIF recording starts after explicit confirmation and a countdown, records a fixed region without audio, and processes temporary raw frames and timing locally. Successful generation removes raw frames; failures or size limits can retain them for the current preview. Discard/completion cleans unpublished results, and later launch cleans abandoned GIF workspaces. Maximum raw material can approach 2 GiB. GIF is not included in the published 1.0.0 download.
+GIF recording starts after explicit confirmation and a countdown, records a fixed region without audio, and processes temporary raw frames and timing locally. Successful generation removes raw frames; failures or size limits can retain them for the current preview. Discard/completion cleans unpublished results, and later launch cleans abandoned GIF workspaces. Maximum raw material can approach 2 GiB.
 
-Silent video recording also starts after confirmation and a countdown. Screen frames are continuously encoded as local H.264/MP4, without system audio, microphone audio, or a full raw-frame spool. After stopping, users can preview and save the video; saving leaves the clipboard unchanged. Discard, re-recording, session completion, and later startup clean owned temporary files. User-saved videos are retained. This feature is not included in the published 1.0.0 download.
+Silent video recording also starts after confirmation and a countdown. Screen frames are continuously encoded as local H.264/MP4, without system audio, microphone audio, or a full raw-frame spool. After stopping, users can preview and save the video; saving leaves the clipboard unchanged. Discard, re-recording, session completion, and later startup clean owned temporary files. User-saved videos are retained.
 
 Published clipboard items carry PNG or GIF data, a file URL, and a private asset ID. Maintenance checks clipboard change counts/types and that ID to manage the app's own files; it does not archive other apps' copied text or images. Language, shortcut, and login preferences are stored locally. System logs can contain session IDs, shortcuts, status codes, and errors that may include local paths.
 

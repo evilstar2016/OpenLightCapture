@@ -19,11 +19,11 @@ bash scripts/verify.sh
 
 记录真实结果：测试数、失败/跳过项、Xcode/macOS、两种架构、实际 GUI 验收，以及仍未覆盖的系统或硬件。生成的本地报告不应未经脱敏就作为公开附件。
 
-当前发行版本为 OpenLightCapture 1.0.0（构建 27），发布标签为 `v1.0.0`。先提交版本源码并从该 commit 构建，核验最终产物后创建对应 tag 和 Release；发布页附通用 DMG 和 SHA-256 校验文件。
+当前发行版本为 OpenLightCapture 1.1.0（构建 28），发布标签为 `v1.1.0`。先提交版本源码并从该 commit 构建，核验最终产物后创建对应 tag 和 Release；发布页附通用 DMG 和 SHA-256 校验文件。
 
 ## 签名与公证
 
-工程默认使用 ad hoc 签名。当前 v1.0.0 包内应用仍采用 ad hoc 签名，未进行 Developer ID 签名或 Apple 公证，下载页必须明确说明，不能宣称已经通过 Gatekeeper。后续使用维护者自己的 Developer ID 配置和 Apple 公证流程时，完成签名、公证和必要的 stapling 后，再打包验证最终产物，并更新发布说明。
+工程默认使用 ad hoc 签名。当前 v1.1.0 包内应用仍采用 ad hoc 签名，未进行 Developer ID 签名或 Apple 公证，下载页必须明确说明，不能宣称已经通过 Gatekeeper。后续使用维护者自己的 Developer ID 配置和 Apple 公证流程时，完成签名、公证和必要的 stapling 后，再打包验证最终产物，并更新发布说明。
 
 账号、证书、私钥和公证凭据不能入库。是否已签名/公证应在具体 Release 中如实说明；不要把 `codesign --verify` 通过写成已经通过 Gatekeeper 或完成公证。实际操作参照 [Apple 公证文档](https://developer.apple.com/documentation/security/notarizing-macos-software-before-distribution)。
 
@@ -33,8 +33,8 @@ bash scripts/verify.sh
 
 ```sh
 bash scripts/package-dmg.sh
-hdiutil verify build/OpenLightCapture-1.0.0-macOS-universal.dmg
-(cd build && shasum -a 256 -c OpenLightCapture-1.0.0-macOS-universal.dmg.sha256)
+hdiutil verify build/OpenLightCapture-1.1.0-macOS-universal.dmg
+(cd build && shasum -a 256 -c OpenLightCapture-1.1.0-macOS-universal.dmg.sha256)
 ```
 
 校验文件中的文件名相对其所在目录，执行 `shasum -c` 时应位于 `build/`。只读挂载最终 DMG，核对包内应用版本、构建号、架构、签名、资源、许可文件、源码提交号与安装快捷方式，再卸载镜像。真实权限与 GUI 验收单独记录；只有实际完成的步骤才能写为通过。上传后重新下载公开资产，核对 SHA-256。发布页附真实版本、支持范围、变更、已知限制与校验和，是否标为预发布应与开发状态一致。

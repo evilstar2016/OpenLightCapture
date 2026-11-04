@@ -91,4 +91,4 @@ bash scripts/verify-watermark-ui.sh
 
 `build/` 为生成目录，不纳入 Git。运行构建、测试或性能脚本会重新生成缓存、日志和临时文件。清理时先确认需要保留的 app/ZIP；不要对应用实际的数据目录进行构建清理。
 
-已发布的 OpenLightCapture 1.0.0（构建 27），发行入口为 [v1.0.0](https://github.com/evilstar2016/OpenLightCapture/releases/tag/v1.0.0)。在 macOS 27.0.1、Apple Silicon、Xcode 27.1 上，199 项 XCTest、双架构 Release、签名与本地化检查通过。DMG 在上传前完成校验与只读挂载检查；当前采用 ad hoc 签名，尚未进行 Apple 公证。真实系统权限和跨应用 GUI 流程仍需实机验收。可运行上述命令重新验证；当前仓库未配置 GitHub Actions 工作流。
+OpenLightCapture 1.1.0（构建 28）的下载和验证记录见 [v1.1.0 发布页](https://github.com/evilstar2016/OpenLightCapture/releases/tag/v1.1.0)。真实系统权限和跨应用 GUI 流程需单独实机验收。可运行上述命令重新验证。本仓库目前没有配置 GitHub Actions 工作流。

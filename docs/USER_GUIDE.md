@@ -16,7 +16,7 @@
 
 完成后，在图片接收应用按 `⌘V` 粘贴图片，或在 Finder 的可写目录中粘贴 PNG 文件。接收应用决定使用剪贴板中的哪种表示，因此并非所有纯文本编辑器都能直接接收图片。
 
-## 文字水印模板（源码新增，尚未发布）
+## 文字水印模板
 
 在“设置 → 水印模板 → 管理模板…”中新建模板，填写署名、账号或保密提示，选择单点或平铺，并调整位置、字号、颜色、透明度、角度和间距。内置模板需要先复制才能编辑；自定义模板修改后点击“保存模板”。
 
@@ -41,9 +41,7 @@
 目标应用切换、窗口关闭/隐藏/移动或显示器变化时可能停止。无法可靠拼接时会等待、暂停或提示部分结果；“没有更多内容”并不保证已经到达页面底部。可使用已确认的部分，也可取消后重新选择区域。
 
 <a id="gif"></a>
-## GIF 动态截图（当前源码新增）
-
-已发布的 1.0.0 下载包尚未包含 GIF；以下流程适用于包含本次修改的源码构建。
+## GIF 动态截图
 
 1. 从菜单栏选择“录制 GIF”，或在截图选区工具栏点击录制按钮。窗口选择只是快速框定区域，录制中不跟随窗口。
 2. 确认输出尺寸及鼠标开关，点击“开始录制”。3 秒倒计时可取消，结束后开始采集实时画面，不录声音。
@@ -58,9 +56,7 @@
 录制中撤销权限、锁屏、休眠或显示器配置变化会结束录制，不自动恢复；已停止采集的结果仍可访问。自动化与合成样本验证不代表真实屏幕、Finder 或聊天应用已完成实机验收。
 
 <a id="video"></a>
-## 无声视频录屏（当前源码新增）
-
-1.0.0 发行包尚未包含此功能，需要从当前源码构建。
+## 无声视频录屏
 
 1. 菜单栏选择“录制视频”，或在截图选区工具栏点击视频按钮。框选区域，也可通过窗口选择快速框定范围。
 2. 确认 MP4 输出尺寸和鼠标开关，点击“开始录制”；3 秒倒计时结束后开始，不录系统声音或麦克风。
@@ -124,11 +120,11 @@ OpenLightCapture 的 Bundle ID 为 `io.github.evilstar2016.openlightcapture`，�
 - Annotate directly. Return confirms active text editing first; finish text entry before completing the screenshot. Outside text entry, use the finish action, `Enter`, or `⌘C`. Use `⌘S` to save PNG.
 - Click and drag any annotation to move it without switching drawing tools. Overlaps select the topmost item; `Delete` removes the selection, and undo/redo includes moves. Hold `Option` to draw over an existing annotation. This works in both capture editors; the crop tool adjusts the capture area.
 - Paste an image into a compatible app, or a file into a writable Finder directory. Plain-text receivers may not accept images.
-- In the unreleased source version, Settings → Watermark Templates manages local text presets. Use the drop icon in either capture editor, choose a preset or No Watermark, and Apply (`⌘Return`). The sample previews the draft; applying updates the screenshot. Cancel or dismiss to discard the draft. Changes affect only this screenshot and support undo/redo. Default watermarks are off; explicitly choosing a default affects new sessions only. Built-ins must be duplicated before editing. Templates support single or tiled placement and live in `Watermarks/templates.json` independently of clipboard cleanup.
+- Settings → Watermark Templates manages local text presets. Use the drop icon in either capture editor, choose a preset or No Watermark, and Apply (`⌘Return`). The sample previews the draft; applying updates the screenshot. Cancel or dismiss to discard the draft. Changes affect only this screenshot and support undo/redo. Default watermarks are off; explicitly choosing a default affects new sessions only. Built-ins must be duplicated before editing. Templates support single or tiled placement and live in `Watermarks/templates.json` independently of clipboard cleanup.
 - Choose Scrolling Screenshot from the menu to enter its dedicated selection flow. Drag over the scrolling body without fixed bars; releasing the mouse opens the manual/automatic mode panel directly. The selected area stays clear while the surrounding desktop is shaded throughout scrolling and pauses; mouse and wheel input pass through. Press Esc to cancel even when the target page has focus; the temporary shortcut is released when the scrolling session ends. Finishing, cancellation, or a capture failure removes the shade. End acquisition and finish in the editor to publish the image.
 - Limits are 50,000 pixels high, 60 million total pixels, and 180 active seconds. Dynamic content, repeated textures, drift, and fast/reversed scrolling can prevent reliable alignment. Partial results are labelled; reaching the bottom is not always provable.
 - All capture modes need Screen Recording; only automatic scrolling needs control permission. Quit and reopen after granting access. Use the permissions help window to inspect status.
-- The current source adds silent MP4/H.264 region recording: select a region, start after a 3-second countdown, stop, preview with system playback controls, and save the video. Defaults are up to 30 fps, 1920 px on the long edge, 10 minutes, and 1 GiB. Saving does not change the clipboard. This and GIF recording are not in the published 1.0.0 download; live capture and platform coverage still need manual validation.
+- For silent MP4/H.264 recording, select a region, start after a 3-second countdown, stop, preview with system playback controls, and save the video. Defaults are up to 30 fps, 1920 px on the long edge, 10 minutes, and 1 GiB. Saving does not change the clipboard. Live capture and platform coverage still need hands-on validation.
 - Without Screen Recording access, the first capture shows the native macOS permission dialog. Choose Open System Settings, enable OpenLightCapture, then use the system's Quit & Reopen action. Deny leaves Settings closed. The app adds no restart dialog for Screen Recording; start a new capture after reopening. If no native dialog appears, open Screen Recording settings from permissions help.
 - Automatic scrolling uses the native control permission dialog too. Choose Open System Settings and enable access. OpenLightCapture detects the grant and shows “Restart Now / Later” even while Settings remains active, including when event posting in the old process still needs a restart. Opening Settings or denying access does not trigger the reminder. Restart Now ends the current capture and reopens the same app; start a new capture afterward. Later keeps the app open, with regular and manual scrolling screenshots available. Each grant prompts once.
 - Keep a stable app location. If macOS blocks a downloaded package, check its release/signing information or build from source rather than disabling security controls.

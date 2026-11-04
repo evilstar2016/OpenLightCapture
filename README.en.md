@@ -29,11 +29,11 @@ Images and videos are processed locally. The app has no network requests, teleme
 
 ## Status and compatibility
 
-The published **1.0.0 (build 27)** release requires macOS 14 or later. Text watermarks, GIFs, and silent MP4 recording are available in builds from the current source.
+The current version is **1.1.0 (build 28)**.
 
-- The current source targets macOS 13 (Ventura) or later.
+- Requires macOS 13 (Ventura) or later.
 - Builds for Apple Silicon (`arm64`) and Intel (`x86_64`). Intel hardware and older macOS versions have incomplete hands-on coverage.
-- Release 1.0.0 validation on macOS 27.0.1, Apple Silicon, and Xcode 27.1 passed 199 XCTest tests, arm64/x86_64 builds, signature checks, and bilingual resource checks. Hands-on permission and GUI checks for the new app identity remain pending.
+- Validation ran on macOS 27.0.1 with Apple Silicon and Xcode 27.1. Live screen recording, system permission prompts, and Ventura runtime behavior still need hands-on verification.
 - Local builds use ad hoc signing and have not been Developer ID signed or notarized by Apple.
 
 See [Known limitations](docs/USER_GUIDE.md#limits) and the [development checks](docs/DEVELOPMENT.md) for scope and evidence.
@@ -60,9 +60,9 @@ The cask uses the same upstream DMG and SHA-256 checksum listed below and preser
 
 ### DMG and source
 
-Download the [OpenLightCapture 1.0.0 universal DMG](https://github.com/evilstar2016/OpenLightCapture/releases/download/v1.0.0/OpenLightCapture-1.0.0-macOS-universal.dmg), open it, and drag `OpenLightCapture.app` to `Applications`. Both Apple Silicon and Intel are supported.
+Download the [OpenLightCapture 1.1.0 universal DMG](https://github.com/evilstar2016/OpenLightCapture/releases/download/v1.1.0/OpenLightCapture-1.1.0-macOS-universal.dmg), open it, and drag `OpenLightCapture.app` to `Applications`. Both Apple Silicon and Intel are supported.
 
-[Release notes](https://github.com/evilstar2016/OpenLightCapture/releases/tag/v1.0.0) · [SHA-256 checksum](https://github.com/evilstar2016/OpenLightCapture/releases/download/v1.0.0/OpenLightCapture-1.0.0-macOS-universal.dmg.sha256). The bundled app uses ad hoc signing without Developer ID signing or Apple notarization; macOS may block its first launch. You can also build from source using the commands below.
+[Release notes](https://github.com/evilstar2016/OpenLightCapture/releases/tag/v1.1.0) · [SHA-256 checksum](https://github.com/evilstar2016/OpenLightCapture/releases/download/v1.1.0/OpenLightCapture-1.1.0-macOS-universal.dmg.sha256). The bundled app uses ad hoc signing without Developer ID signing or Apple notarization; macOS may block its first launch. You can also build from source using the commands below.
 
 Local builds use ad hoc signing and have not been Developer ID signed or notarized by Apple. The local `build/` directory is not committed.
 
