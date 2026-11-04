@@ -1,6 +1,7 @@
 # macOS
 .DS_Store
 ._*
+.serena/
 
 # Swift / Xcode generated files and local settings
 .build/
