@@ -3,6 +3,9 @@ import Carbon.HIToolbox
 
 @MainActor
 final class AnnotationEditorWindowController: NSWindowController, NSWindowDelegate {
+    private let watermarkLibrary: WatermarkLibrarySnapshot
+    private let watermarkPopover = WatermarkPopoverController()
+    private var watermarkButton: NSButton!
     private let annotationDocument: AnnotationDocument
     private let onCancel: () -> Void
     private let onComplete: (CGImage) async -> Bool
@@ -37,9 +40,12 @@ final class AnnotationEditorWindowController: NSWindowController, NSWindowDelega
         onSave: ((CGImage) async -> Bool)? = nil,
         onChangeCaptureSource: ((CaptureMode) -> Void)? = nil,
         bannerMessage: String? = nil,
-        annotationPixelScale: CGFloat = 1
+        annotationPixelScale: CGFloat = 1,
+        watermarkLibrary: WatermarkLibrarySnapshot = .empty,
+        watermark: WatermarkSelection? = nil
     ) {
-        annotationDocument = AnnotationDocument(image: image)
+        self.watermarkLibrary = watermarkLibrary
+        annotationDocument = AnnotationDocument(image: image, watermark: watermark)
         zoomMode = image.height > image.width * 2 ? 1 : 0
         self.onCancel = onCancel
         self.onComplete = onComplete
@@ -90,12 +96,14 @@ final class AnnotationEditorWindowController: NSWindowController, NSWindowDelega
     }
 
     func dismissAfterCompletion() {
+        watermarkPopover.close()
         isDismissed = true
         isFinishing = true
         close()
     }
 
     func windowShouldClose(_: NSWindow) -> Bool {
+        watermarkPopover.close()
         if !isDismissed {
             isDismissed = true
             onCancel()
@@ -190,7 +198,7 @@ final class AnnotationEditorWindowController: NSWindowController, NSWindowDelega
         header.orientation = .horizontal
         header.alignment = .centerY
         header.distribution = .fill
-        header.spacing = 12
+        header.spacing = 8
         header.translatesAutoresizingMaskIntoConstraints = false
         let toolbar = CaptureToolbarPlate(frame: .zero)
         toolbar.identifier = NSUserInterfaceItemIdentifier("capture.annotation.toolbar")
@@ -216,6 +224,9 @@ final class AnnotationEditorWindowController: NSWindowController, NSWindowDelega
         }
 
         toolbar.addArrangedSubview(AnnotationToolbarStyle.separator())
+        watermarkButton = iconButton("drop.halffull", title: L10n.watermarkTitle, action: #selector(editWatermark(_:)))
+        watermarkButton.identifier = NSUserInterfaceItemIdentifier("capture.action.watermark")
+        toolbar.addArrangedSubview(watermarkButton)
         changeSourceButton = iconButton("rectangle.on.rectangle", title: L10n.editorChangeSource, action: #selector(changeCaptureSource))
         changeSourceButton.isEnabled = onChangeCaptureSource != nil
         toolbar.addArrangedSubview(changeSourceButton)
@@ -444,11 +455,17 @@ final class AnnotationEditorWindowController: NSWindowController, NSWindowDelega
     }
 
     private func updateHistoryButtons() {
+        if let watermarkButton {
+            AnnotationToolbarStyle.update(watermarkButton, selected: annotationDocument.watermark != nil, enabled: !isFinishing && !isDismissed)
+            watermarkButton.toolTip = L10n.watermarkTitle + ": " + (annotationDocument.watermark.map { $0.sourceName ?? L10n.watermarkCustom } ?? L10n.watermarkNone)
+            watermarkButton.setAccessibilityLabel(watermarkButton.toolTip)
+        }
         undoButton?.isEnabled = !isFinishing && annotationDocument.canUndo
         redoButton?.isEnabled = !isFinishing && annotationDocument.canRedo
     }
 
     private func setFinishing(_ value: Bool) {
+        if value { watermarkPopover.close() }
         isFinishing = value
         completeButton.isEnabled = !value
         saveButton.isEnabled = !value && onSave != nil
@@ -466,6 +483,17 @@ final class AnnotationEditorWindowController: NSWindowController, NSWindowDelega
         }
         palette.update(for: canvas.tool, enabled: !isFinishing && !isDismissed)
         window?.contentView?.needsLayout = true
+    }
+
+    @objc private func editWatermark(_ sender: NSButton) {
+        guard !isFinishing, !isDismissed else { return }
+        finishTextEditing(commit: true)
+        watermarkPopover.show(relativeTo: sender, selection: annotationDocument.watermark, library: watermarkLibrary) { [weak self] selection in
+            guard let self, !isFinishing, !isDismissed else { return }
+            annotationDocument.setWatermark(selection)
+            canvas.refresh()
+            updateHistoryButtons()
+        }
     }
 
     private func showError(_ title: String, detail: String) {

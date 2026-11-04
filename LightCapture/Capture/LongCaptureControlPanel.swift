@@ -1,6 +1,68 @@
 import AppKit
 import Carbon.HIToolbox
 
+/// Shade only the surrounding rectangles. A full-screen transparent window
+/// would still cover the scroll target in WindowServer's hit-window list.
+@MainActor
+final class LongCaptureRegionHighlight {
+    let panels: [NSPanel]
+
+    init(screenFrames: [CGRect], region: CGRect) {
+        panels = screenFrames.flatMap { screenFrame -> [NSPanel] in
+            let selected = screenFrame.intersection(region)
+            let rectangles: [CGRect] = if selected.isEmpty || selected.isNull {
+                [screenFrame]
+            } else {
+                [
+                    CGRect(x: screenFrame.minX, y: screenFrame.minY, width: selected.minX - screenFrame.minX, height: screenFrame.height),
+                    CGRect(x: selected.maxX, y: screenFrame.minY, width: screenFrame.maxX - selected.maxX, height: screenFrame.height),
+                    CGRect(x: selected.minX, y: screenFrame.minY, width: selected.width, height: selected.minY - screenFrame.minY),
+                    CGRect(x: selected.minX, y: selected.maxY, width: selected.width, height: screenFrame.maxY - selected.maxY),
+                ]
+            }
+            return rectangles.filter { $0.width > 0 && $0.height > 0 }.map { rectangle in
+                let panel = LongCaptureShadePanel(contentRect: rectangle, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+                panel.identifier = NSUserInterfaceItemIdentifier("capture.long.regionShade")
+                panel.isOpaque = false
+                panel.backgroundColor = NSColor.black.withAlphaComponent(0.38)
+                panel.hasShadow = false
+                panel.ignoresMouseEvents = true
+                panel.isFloatingPanel = true
+                panel.level = .floating
+                panel.hidesOnDeactivate = false
+                panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
+                panel.animationBehavior = .none
+                return panel
+            }
+        }
+    }
+
+    func show() {
+        panels.forEach { $0.orderFrontRegardless() }
+    }
+
+    func close() {
+        panels.forEach { $0.close() }
+    }
+}
+
+@MainActor
+private final class LongCaptureShadePanel: NSPanel {
+    override func constrainFrameRect(_ frameRect: NSRect, to _: NSScreen?) -> NSRect {
+        // A top strip touches the full screen edge. AppKit otherwise moves it
+        // below the menu bar, leaving a bright gap and shading the selection.
+        frameRect
+    }
+
+    override var canBecomeKey: Bool {
+        false
+    }
+
+    override var canBecomeMain: Bool {
+        false
+    }
+}
+
 enum LongCaptureMode: String {
     case manual
     case automatic
@@ -53,6 +115,7 @@ final class LongCaptureControlPanel: NSPanel, NSWindowDelegate {
         delegate = self
         contentView = rootView
         rootView.onEscape = { [weak self] in self?.onCancel?() }
+        cancelButton.keyEquivalent = "\u{1b}"
 
         for (button, identifier) in [
             (manualButton, "manual"), (automaticButton, "automatic"), (pauseButton, "pause"),
@@ -79,6 +142,10 @@ final class LongCaptureControlPanel: NSPanel, NSWindowDelegate {
 
     override var canBecomeMain: Bool {
         false
+    }
+
+    override func cancelOperation(_: Any?) {
+        onCancel?()
     }
 
     func present() {

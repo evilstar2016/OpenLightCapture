@@ -2,6 +2,16 @@
 
 应用版本来自 `CFBundleShortVersionString`，构建号来自 `CFBundleVersion`。
 
+## 未发布 / Unreleased
+
+- 增加文字水印模板，支持单点或平铺，以及截图和长图编辑时的临时调整。
+- 增加 GIF 和无声 MP4/H.264 区域录制。GIF 可复制或保存，视频可预览并另存。
+- 长截图从菜单栏框选后直接进入模式选择，采集时保持区域遮罩，支持按 `Esc` 取消。
+- 窗口选择支持桌面候选。切换桌面空间时取消未完成的选区，方便重新发起截图。
+- 调整首次录屏授权及自动滚动授权后的重启提醒，最低运行目标调整为 macOS 13（Ventura）。
+
+Adds text watermark templates, GIF and silent MP4 region recording, desktop selection, and an updated scrolling capture and permissions flow. The minimum deployment target is macOS 13 Ventura.
+
 ## 1.0.0 — 2026-10-29（Build 27）
 
 - 区域与窗口截图，支持直接标注、样式调整、选中拖动以及撤销/重做。

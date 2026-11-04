@@ -8,7 +8,8 @@ final class CaptureEnvironmentMonitor {
     init(
         workspaceNotificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter,
         applicationNotificationCenter: NotificationCenter = .default,
-        onInterruption: @escaping @MainActor (String) -> Void
+        onInterruption: @escaping @MainActor (String) -> Void,
+        onSpaceChange: (@MainActor () -> Void)? = nil
     ) {
         observe(
             center: workspaceNotificationCenter,
@@ -34,6 +35,9 @@ final class CaptureEnvironmentMonitor {
             reason: L10n.interruptionDisplayChange,
             handler: onInterruption
         )
+        if let onSpaceChange {
+            observe(center: workspaceNotificationCenter, name: NSWorkspace.activeSpaceDidChangeNotification, handler: onSpaceChange)
+        }
     }
 
     func stop() {
@@ -47,15 +51,25 @@ final class CaptureEnvironmentMonitor {
     private func observe(
         center: NotificationCenter,
         name: Notification.Name,
-        reason: @autoclosure @escaping @Sendable () -> String,
-        handler: @escaping @MainActor (String) -> Void
+        handler: @escaping @MainActor () -> Void
     ) {
         let observer = center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
             Task { @MainActor [weak self] in
                 guard self?.isRunning == true else { return }
-                handler(reason())
+                handler()
             }
         }
         registrations.append((center, observer))
+    }
+
+    private func observe(
+        center: NotificationCenter,
+        name: Notification.Name,
+        reason: @autoclosure @escaping @Sendable () -> String,
+        handler: @escaping @MainActor (String) -> Void
+    ) {
+        observe(center: center, name: name) {
+            handler(reason())
+        }
     }
 }

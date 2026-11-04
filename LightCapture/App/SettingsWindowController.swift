@@ -30,6 +30,10 @@ final class SettingsWindowController: NSWindowController {
     }
 
     func showWindow() {
+        if let content = window?.contentView {
+            content.layoutSubtreeIfNeeded()
+            window?.setContentSize(content.fittingSize)
+        }
         window?.center()
         showWindow(nil)
         NSApp.activate(ignoringOtherApps: true)
@@ -128,6 +132,9 @@ private struct SettingsView: View {
             Divider()
 
             VStack(alignment: .leading, spacing: 10) {
+                SettingsWatermarkSection()
+                    .disabled(isRecordingShortcut)
+                Divider()
                 sectionTitle(L10n.settingsStartup)
                 Toggle(L10n.settingsLaunchAtLogin, isOn: Binding(
                     get: { launchAtLogin }, set: { updateLoginItem(enabled: $0) }

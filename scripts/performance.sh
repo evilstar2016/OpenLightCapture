@@ -4,9 +4,19 @@ probe_root="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$probe_root"
 probe_output="${1:-build/performance-$(date +%Y%m%d-%H%M%S)}"
 mkdir -p "$probe_output"
-swiftc -O -swift-version 6 -parse-as-library \
+swiftc -O -swift-version 6 -target "$(uname -m)-apple-macos13.0" -parse-as-library \
     LightCapture/Localization/LocalizationContext.swift \
     LightCapture/Localization/L10n.swift \
+    LightCapture/Localization/WatermarkL10n.swift \
+    LightCapture/Watermark/WatermarkTemplate.swift \
+    LightCapture/Watermark/WatermarkRenderer.swift \
+    LightCapture/Localization/L10n+GIF.swift \
+    LightCapture/Localization/L10n+Video.swift \
+    LightCapture/Recording/VideoRecorder.swift \
+    LightCapture/Recording/RecordingModels.swift \
+    LightCapture/Recording/GIFFrameStore.swift \
+    LightCapture/Recording/GIFEncoder.swift \
+    LightCapture/Output/EncodedOutput.swift \
     LightCapture/Capture/CGImageCoordinates.swift \
     LightCapture/Annotation/AnnotationDocument.swift \
     LightCapture/Annotation/AnnotationRenderer.swift \

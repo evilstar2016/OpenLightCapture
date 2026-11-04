@@ -47,6 +47,7 @@ struct AnnotationStyle {
 
 @MainActor
 final class AnnotationCanvasView: NSView {
+    private let watermarkCache = WatermarkPreviewCache()
     let document: AnnotationDocument
     var isInteractionEnabled = true
     var displayScale: CGFloat?
@@ -162,6 +163,20 @@ final class AnnotationCanvasView: NSView {
             draw(annotation)
         }
         drawCurrentPreview()
+        if let watermark = document.watermark, let context = NSGraphicsContext.current?.cgContext {
+            do {
+                let layout = try watermarkCache.resolve(watermark, size: crop.size)
+                context.saveGState()
+                context.translateBy(x: fittedImageRect.minX, y: fittedImageRect.maxY)
+                context.scaleBy(x: fittedImageRect.width / crop.width, y: -fittedImageRect.height / crop.height)
+                WatermarkRenderer.draw(layout, in: context)
+                context.restoreGState()
+            } catch {
+                (error.localizedDescription as NSString).draw(in: fittedImageRect.insetBy(dx: 8, dy: 8), withAttributes: [
+                    .font: NSFont.systemFont(ofSize: 12), .foregroundColor: NSColor.systemOrange,
+                ])
+            }
+        }
         if let selected = items.first(where: { $0.id == selectedAnnotationID }) {
             NSColor.controlAccentColor.setStroke()
             let outline = NSBezierPath(rect: viewRect(forPixelRect: selected.bounds).insetBy(dx: -4, dy: -4))

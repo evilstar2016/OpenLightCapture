@@ -75,7 +75,7 @@ enum L10n {
     }
 
     static var editorDiscardChanges: String {
-        LocalizationContext.current.string("editor.discardChanges", defaultValue: "Continuing discards the current annotations and crop. Choose “Keep Editing” to retain them.")
+        LocalizationContext.current.string("editor.discardChanges", defaultValue: "Continuing discards the current annotations, crop, and watermark adjustments. Choose “Keep Editing” to retain them.")
     }
 
     static var editorSourceHelp: String {
@@ -262,6 +262,10 @@ enum L10n {
         LocalizationContext.current.string("interruption.displayChange", defaultValue: "The display configuration changed. The screenshot was cancelled.")
     }
 
+    static var interruptionSpaceChange: String {
+        LocalizationContext.current.string("interruption.spaceChange", defaultValue: "The desktop space changed. The screenshot was cancelled.")
+    }
+
     static func errorHotKeyRejected(_ p0: String, _ p1: Int, in context: LocalizationContext = .current) -> String {
         context.format("error.hotKeyRejected", defaultValue: "The system rejected %1$@ (error %2$lld). Try another shortcut; the menu bar remains available.", arguments: [p0, p1])
     }
@@ -299,7 +303,7 @@ enum L10n {
     }
 
     static var permissionScreenHelp: String {
-        LocalizationContext.current.string("permission.screenHelp", defaultValue: "Required for regular, manual scrolling, and automatic scrolling screenshots to read the screen area you select.")
+        LocalizationContext.current.string("permission.screenHelp", defaultValue: "Required for screenshots, scrolling screenshots, GIF recording, and video recording to read the screen area you select.")
     }
 
     static var permissionOpenScreen: String {
@@ -323,7 +327,7 @@ enum L10n {
     }
 
     static var permissionRestartPrompt: String {
-        LocalizationContext.current.string("permission.restartPrompt", defaultValue: "If you enabled access in System Settings, restart OpenLightCapture to apply it. Restarting ends the current screenshot. Start a new screenshot after the app reopens.")
+        LocalizationContext.current.string("permission.restartPrompt", defaultValue: "Control permission is enabled. Restart OpenLightCapture to apply it. Restarting ends the current screenshot. Start a new screenshot after the app reopens.")
     }
 
     static var permissionRestartNow: String {
@@ -447,7 +451,7 @@ enum L10n {
     }
 
     static var permissionScreenPurpose: String {
-        LocalizationContext.current.string("permission.screenPurpose", defaultValue: "Regular and scrolling screenshots need access to the screen area you select.")
+        LocalizationContext.current.string("permission.screenPurpose", defaultValue: "Screenshots, scrolling screenshots, GIF recording, and video recording need access to the screen area you select.")
     }
 
     static var permissionControlPurpose: String {
@@ -619,7 +623,11 @@ enum L10n {
     }
 
     static var selectionHint: String {
-        LocalizationContext.current.string("selection.hint", defaultValue: "Drag to select · Space to switch windows · Esc to cancel")
+        LocalizationContext.current.string("selection.hint", defaultValue: "Drag to select · Space for windows & desktop · Esc to cancel")
+    }
+
+    static var selectionLongHint: String {
+        LocalizationContext.current.string("selection.longHint", defaultValue: "Scrolling screenshot · Select the scrolling area · Space for windows & desktop · Esc to cancel")
     }
 
     static var selectionArea: String {

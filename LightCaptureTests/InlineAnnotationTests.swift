@@ -5,6 +5,60 @@ import XCTest
 
 @MainActor
 final class InlineAnnotationTests: XCTestCase {
+    func testLongCaptureEntryExplainsTheModeBeforeSelecting() throws {
+        let original = LocalizationContext.current
+        defer { LocalizationRuntime.shared.install(original) }
+        for language in ["zh-Hans", "en"] {
+            LocalizationRuntime.shared.install(LocalizationContext(languageIdentifier: language))
+            let overlay = try SelectionOverlayWindow(screen: screen(), initialMode: .long)
+            defer { overlay.close() }
+            let root = try XCTUnwrap(overlay.contentView)
+            let hint = try XCTUnwrap(views(in: root).compactMap { $0 as? NSTextField }.first { $0.identifier?.rawValue == "capture.selection.hint" })
+            XCTAssertEqual(hint.stringValue, L10n.selectionLongHint)
+            XCTAssertFalse(hint.isHiddenOrHasHiddenAncestor)
+            XCTAssertTrue(try plate("capture.annotation.toolbar", in: root).isHidden)
+            XCTAssertFalse(views(in: root).contains { $0 is AnnotationCanvasView })
+        }
+    }
+
+    func testLongCaptureEntryStartsOnMouseReleaseWithoutPublishingAScreenshot() throws {
+        let overlay = try SelectionOverlayWindow(screen: screen(scale: 2), initialMode: .long)
+        defer { overlay.close() }
+        let root = try XCTUnwrap(overlay.contentView)
+        let canvas = try selectionCanvas(in: overlay)
+        var requests = 0
+        overlay.onOutput = { _, _, _, _ in XCTFail("长图入口不能直接复制普通截图"); return false }
+        overlay.onLongCapture = { rect, _ in
+            requests += 1
+            XCTAssertEqual(rect, CGRect(x: 120, y: 100, width: 500, height: 300))
+        }
+        for (type, point) in [(NSEvent.EventType.leftMouseDown, CGPoint(x: 120, y: 100)), (.leftMouseDragged, CGPoint(x: 620, y: 400)), (.leftMouseUp, CGPoint(x: 620, y: 400))] {
+            let event = try XCTUnwrap(NSEvent.mouseEvent(with: type, location: canvas.convert(point, to: nil), modifierFlags: [], timestamp: 1, windowNumber: overlay.windowNumber, context: nil, eventNumber: 0, clickCount: 1, pressure: 0))
+            switch type {
+            case .leftMouseDown: canvas.mouseDown(with: event)
+            case .leftMouseDragged: canvas.mouseDragged(with: event)
+            default: canvas.mouseUp(with: event)
+            }
+            XCTAssertEqual(requests, type == .leftMouseUp ? 1 : 0)
+        }
+        XCTAssertTrue(try plate("capture.annotation.toolbar", in: root).isHidden)
+        XCTAssertFalse(views(in: root).contains { $0 is AnnotationCanvasView })
+        let confirm = try XCTUnwrap(NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [], timestamp: 2, windowNumber: overlay.windowNumber, context: nil, characters: "\r", charactersIgnoringModifiers: "\r", isARepeat: false, keyCode: 36))
+        canvas.keyDown(with: confirm)
+        XCTAssertEqual(requests, 1, "松开鼠标后回车不能重复开始长图")
+    }
+
+    func testLongCaptureEntryIgnoresAnEmptyClick() throws {
+        let overlay = try SelectionOverlayWindow(screen: screen(), initialMode: .long)
+        defer { overlay.close() }
+        var requests = 0
+        overlay.onLongCapture = { _, _ in requests += 1 }
+        try select(CGRect(x: 120, y: 100, width: 0, height: 0), in: overlay)
+        XCTAssertEqual(requests, 0)
+        try select(CGRect(x: 120, y: 100, width: 500, height: 300), in: overlay)
+        XCTAssertEqual(requests, 1)
+    }
+
     func testFinishingSelectionShowsDrawingToolsWithoutAnExtraEditor() throws {
         let overlay = try makeOverlay()
         defer { overlay.close() }

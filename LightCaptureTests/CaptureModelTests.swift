@@ -7,6 +7,109 @@ import ScreenCaptureKit
 import XCTest
 
 final class CaptureModelTests: XCTestCase {
+    @MainActor
+    func testLongCaptureHighlightKeepsTheLiveSelectionClearAndDoesNotCoverTheScrollTarget() {
+        let screens = [CGRect(x: 0, y: 0, width: 900, height: 650), CGRect(x: -800, y: 0, width: 800, height: 600)]
+        let region = CGRect(x: 120, y: 200, width: 500, height: 300)
+        let highlight = LongCaptureRegionHighlight(screenFrames: screens, region: region)
+        defer { highlight.close() }
+        highlight.show()
+        let expectedArea = screens.reduce(CGFloat.zero) { $0 + $1.width * $1.height } - region.width * region.height
+        XCTAssertEqual(highlight.panels.reduce(CGFloat.zero) { $0 + $1.frame.width * $1.frame.height }, expectedArea)
+        for (index, panel) in highlight.panels.enumerated() {
+            XCTAssertTrue(panel.isVisible)
+            XCTAssertTrue(panel.ignoresMouseEvents, "遮罩必须允许鼠标和滚轮传给目标页面")
+            XCTAssertFalse(panel.hidesOnDeactivate, "切换到目标应用滚动时不能移除遮罩")
+            XCTAssertTrue(panel.collectionBehavior.contains(.canJoinAllSpaces))
+            XCTAssertTrue(panel.frame.intersection(region).isEmpty, "不能在透明选区上方保留会遮挡自动滚动命中检测的窗口")
+            XCTAssertEqual(panel.backgroundColor.alphaComponent, 0.38, accuracy: 0.001)
+            for other in highlight.panels.dropFirst(index + 1) {
+                XCTAssertTrue(panel.frame.intersection(other.frame).isEmpty, "遮罩不能重复叠加导致局部过暗")
+            }
+        }
+        highlight.close()
+        XCTAssertTrue(highlight.panels.allSatisfy { !$0.isVisible })
+    }
+
+    @MainActor
+    func testLongCaptureHighlightSupportsScreenEdgesAndOffsetDisplays() {
+        let screen = CGRect(x: -1000, y: 400, width: 1000, height: 800)
+        for region in [screen, CGRect(x: -1000, y: 400, width: 400, height: 600), CGRect(x: -600, y: 900, width: 600, height: 300)] {
+            let highlight = LongCaptureRegionHighlight(screenFrames: [screen], region: region)
+            defer { highlight.close() }
+            XCTAssertEqual(highlight.panels.reduce(CGFloat.zero) { $0 + $1.frame.width * $1.frame.height }, screen.width * screen.height - region.width * region.height)
+            for panel in highlight.panels {
+                XCTAssertTrue(screen.contains(panel.frame))
+                XCTAssertTrue(panel.frame.intersection(region).isEmpty)
+            }
+        }
+    }
+
+    @MainActor
+    func testLongCaptureShadeDoesNotMoveBelowTheMenuBarWhenShown() throws {
+        let frame = try XCTUnwrap(NSScreen.screens.first).frame
+        let region = frame.insetBy(dx: 80, dy: 160)
+        let highlight = LongCaptureRegionHighlight(screenFrames: [frame], region: region)
+        defer { highlight.close() }
+        let requestedFrames = highlight.panels.map(\.frame)
+        highlight.show()
+        XCTAssertEqual(highlight.panels.map(\.frame), requestedFrames, "显示顶部遮罩时不能被系统移动一个菜单栏高度")
+        let top = try XCTUnwrap(highlight.panels.first { $0.frame.minX == region.minX && $0.frame.width == region.width && $0.frame.maxY > region.maxY })
+        XCTAssertEqual(top.frame.minY, region.maxY, "顶部遮罩不能移入截图区域")
+        XCTAssertEqual(top.frame.maxY, frame.maxY, "顶部不能留下额外亮条")
+        for panel in highlight.panels {
+            XCTAssertFalse(panel.canBecomeKey)
+            XCTAssertFalse(panel.canBecomeMain)
+        }
+    }
+
+    @MainActor
+    func testLongCapturePanelCancelsWithEscapeWhenAControlHasFocus() throws {
+        let panel = LongCaptureControlPanel(screenFrame: CGRect(x: 0, y: 0, width: 1440, height: 900),
+                                            selectedGlobalRect: CGRect(x: 100, y: 300, width: 500, height: 400))
+        defer { panel.close() }
+        var cancellations = 0
+        panel.onCancel = { cancellations += 1 }
+        func buttons(in view: NSView) -> [NSButton] {
+            (view as? NSButton).map { [$0] } ?? view.subviews.flatMap { buttons(in: $0) }
+        }
+        let controls = try buttons(in: XCTUnwrap(panel.contentView))
+        let cancel = try XCTUnwrap(controls.first { $0.identifier?.rawValue == "capture.long.cancel" })
+        XCTAssertEqual(cancel.keyEquivalent, "\u{1b}")
+        try panel.makeFirstResponder(XCTUnwrap(controls.first { $0.identifier?.rawValue == "capture.long.manual" }))
+        panel.cancelOperation(nil)
+        XCTAssertEqual(cancellations, 1)
+    }
+
+    @MainActor
+    func testLongCaptureEscapeCancelsFromTheTargetPageAndRestoresBrightness() throws {
+        let frame = CGRect(x: 0, y: 0, width: 900, height: 650)
+        let context = try XCTUnwrap(CGContext(data: nil, width: 900, height: 650, bitsPerComponent: 8, bytesPerRow: 3600, space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+        let screen = try FrozenScreen(displayID: 0, screenFrame: frame, image: XCTUnwrap(context.makeImage()), transform: DisplayTransform(screenFrame: frame, pixelWidth: 900, pixelHeight: 650), windows: [])
+        let flow = CaptureFlowController()
+        let session = try XCTUnwrap(flow.sessions.begin(mode: .long, targetProcessID: nil))
+        XCTAssertTrue(flow.sessions.transition(sessionID: session.id, generation: session.generation, to: .scrollReady))
+        let escapeShortcut = FakeCaptureCancellationShortcut()
+        let controller = LongCaptureController(captureFlowController: flow, escapeShortcut: escapeShortcut)
+        defer {
+            controller.cancel()
+            flow.cancelCurrentSession(restoreFocus: false)
+        }
+        controller.begin(screen: screen, pixelRect: CGRect(x: 120, y: 100, width: 500, height: 300), session: session)
+        let shades = NSApp.windows.filter { $0.identifier?.rawValue == "capture.long.regionShade" && $0.isVisible }
+        XCTAssertFalse(shades.isEmpty)
+        XCTAssertEqual(escapeShortcut.registrations, 1, "选区确认后启用临时 Esc，不能依赖控制面板拥有键盘焦点")
+        let region = try XCTUnwrap(screen.transform.globalScreenRect(fromPixelRect: CGRect(x: 120, y: 100, width: 500, height: 300)))
+        XCTAssertTrue(shades.allSatisfy { $0.frame.intersection(region).isEmpty })
+        escapeShortcut.pressEscape()
+        XCTAssertNil(flow.sessions.activeSession, "Esc 必须同时释放截图会话")
+        XCTAssertTrue(shades.allSatisfy { !$0.isVisible }, "取消长截图必须立即恢复屏幕亮度")
+        XCTAssertEqual(escapeShortcut.unregistrations, 1)
+        XCTAssertFalse(NSApp.windows.contains { $0 is LongCaptureControlPanel && $0.isVisible })
+        escapeShortcut.pressEscape()
+        XCTAssertEqual(escapeShortcut.unregistrations, 1, "结束后停止占用 Esc")
+    }
+
     func testThumbnailRespectsPixelBoundsWithoutUpscaling() throws {
         let context = try XCTUnwrap(CGContext(
             data: nil,
@@ -514,6 +617,130 @@ final class CaptureModelTests: XCTestCase {
         XCTAssertNil(sessionAfterCancellation)
         XCTAssertFalse(repeatedCancellation)
         XCTAssertEqual(requestCount, 1)
+    }
+
+    func testSpaceSwitchNotifiesSpaceCallbackInsteadOfInterruptionOnce() async {
+        let workspaceCenter = NotificationCenter()
+        let applicationCenter = NotificationCenter()
+        let receivedMessages = await MainActor.run { InterruptionMessageRecorder() }
+        let expectation = expectation(description: "切换桌面空间触发独立回调")
+        expectation.expectedFulfillmentCount = 2
+        let monitor = await MainActor.run {
+            CaptureEnvironmentMonitor(
+                workspaceNotificationCenter: workspaceCenter,
+                applicationNotificationCenter: applicationCenter,
+                onInterruption: { reason in receivedMessages.messages.append(reason) },
+                onSpaceChange: {
+                    receivedMessages.messages.append("space")
+                    expectation.fulfill()
+                }
+            )
+        }
+
+        await MainActor.run {
+            workspaceCenter.post(name: NSWorkspace.activeSpaceDidChangeNotification, object: nil)
+            workspaceCenter.post(name: NSWorkspace.activeSpaceDidChangeNotification, object: nil)
+        }
+        await fulfillment(of: [expectation], timeout: 2)
+        let messages = await MainActor.run {
+            monitor.stop()
+            return receivedMessages.messages
+        }
+
+        XCTAssertEqual(messages, ["space", "space"], "空间切换仅触发专属回调，不进入通用中断取消")
+    }
+
+    func testSpaceChangeCancelsSelectionOnlyAndKeepsEditingAndRecording() async throws {
+        let flow = await MainActor.run { CaptureFlowController() }
+        let recordingCancels = await MainActor.run { InterruptionMessageRecorder() }
+        await MainActor.run { flow.onRecordingCancel = { recordingCancels.messages.append("recording") } }
+
+        let selectionSession = await flow.sessions.begin(mode: .long, targetProcessID: 42)
+        XCTAssertNotNil(selectionSession)
+        let selectionCancellation = await flow.cancelForSpaceChange()
+        let afterSelection = await flow.sessions.activeSession
+        XCTAssertTrue(selectionCancellation, "未完成选区随空间切换取消，释放会话")
+        XCTAssertNil(afterSelection)
+
+        let editingSession = await flow.sessions.begin(mode: .long, targetProcessID: 42)
+        let editingUnwrapped = try XCTUnwrap(editingSession)
+        let editingTransition = await flow.sessions.transition(sessionID: editingUnwrapped.id, generation: editingUnwrapped.generation, to: .editing)
+        XCTAssertTrue(editingTransition)
+        let editingCancellation = await flow.cancelForSpaceChange()
+        let editingState = await flow.sessions.activeSession?.state
+        XCTAssertFalse(editingCancellation, "编辑中的会话不随空间切换取消")
+        XCTAssertEqual(editingState, .editing)
+        await flow.cancelCurrentSession(restoreFocus: false)
+
+        let recordingSession = await flow.sessions.begin(mode: .gif, targetProcessID: 42)
+        let recordingUnwrapped = try XCTUnwrap(recordingSession)
+        let recordingTransition = await flow.sessions.transition(sessionID: recordingUnwrapped.id, generation: recordingUnwrapped.generation, to: .recording)
+        XCTAssertTrue(recordingTransition)
+        let recordingCancellation = await flow.cancelForSpaceChange()
+        let recordingState = await flow.sessions.activeSession?.state
+        XCTAssertFalse(recordingCancellation, "录制中的会话由录制流程自行处理环境变化")
+        XCTAssertEqual(recordingState, .recording)
+        let cancelCount = await MainActor.run { recordingCancels.messages.count }
+        XCTAssertEqual(cancelCount, 0)
+        _ = await flow.sessions.cancel(sessionID: recordingUnwrapped.id, generation: recordingUnwrapped.generation)
+        let cleared = await flow.sessions.activeSession
+        XCTAssertNil(cleared)
+    }
+
+    func testScreenBarsComputeMenuBarAndDockInsets() {
+        let frame = CGRect(x: 0, y: 0, width: 1200, height: 800)
+        XCTAssertEqual(ScreenBars.compute(frame: frame, visibleFrame: CGRect(x: 0, y: 70, width: 1200, height: 706)),
+                       ScreenBars(top: 24, bottom: 70, leading: 0, trailing: 0))
+        XCTAssertEqual(ScreenBars.compute(frame: frame, visibleFrame: CGRect(x: 80, y: 0, width: 1120, height: 776)),
+                       ScreenBars(top: 24, bottom: 0, leading: 80, trailing: 0))
+        XCTAssertEqual(ScreenBars.compute(frame: frame, visibleFrame: CGRect(x: 0, y: 0, width: 1120, height: 776)),
+                       ScreenBars(top: 24, bottom: 0, leading: 0, trailing: 80))
+        XCTAssertEqual(ScreenBars.compute(frame: frame, visibleFrame: frame), .zero)
+    }
+
+    func testDesktopSelectionRegionMapsHoverZonesToFullScreenVariants() {
+        let frame = CGRect(x: 100, y: 50, width: 1200, height: 800)
+        let bars = ScreenBars(top: 24, bottom: 70, leading: 0, trailing: 0)
+        XCTAssertEqual(DesktopSelectionRegion.resolve(point: CGPoint(x: 700, y: 450), screenFrame: frame, bars: bars), frame,
+                       "屏幕中部悬停建议整屏")
+        XCTAssertEqual(DesktopSelectionRegion.resolve(point: CGPoint(x: 700, y: 840), screenFrame: frame, bars: bars),
+                       CGRect(x: 100, y: 50, width: 1200, height: 776), "悬停菜单栏建议排除头部")
+        XCTAssertEqual(DesktopSelectionRegion.resolve(point: CGPoint(x: 700, y: 80), screenFrame: frame, bars: bars),
+                       CGRect(x: 100, y: 120, width: 1200, height: 730), "悬停 Dock 建议排除底边")
+        XCTAssertEqual(DesktopSelectionRegion.resolve(point: CGPoint(x: 140, y: 450), screenFrame: frame,
+                                                      bars: ScreenBars(top: 0, bottom: 0, leading: 80, trailing: 0)),
+                       CGRect(x: 180, y: 50, width: 1120, height: 800), "悬停左侧 Dock 建议排除侧边")
+        XCTAssertEqual(DesktopSelectionRegion.resolve(point: CGPoint(x: 1240, y: 450), screenFrame: frame,
+                                                      bars: ScreenBars(top: 0, bottom: 0, leading: 0, trailing: 80)),
+                       CGRect(x: 100, y: 50, width: 1120, height: 800), "悬停右侧 Dock 建议排除右侧")
+        XCTAssertEqual(DesktopSelectionRegion.resolve(point: CGPoint(x: 120, y: 840), screenFrame: frame,
+                                                      bars: ScreenBars(top: 24, bottom: 0, leading: 80, trailing: 0)),
+                       CGRect(x: 100, y: 50, width: 1200, height: 776), "角落优先排除菜单栏")
+        XCTAssertNil(DesktopSelectionRegion.resolve(point: CGPoint(x: 10, y: 10), screenFrame: frame, bars: bars),
+                     "屏幕外无候选")
+        XCTAssertEqual(DesktopSelectionRegion.resolve(point: CGPoint(x: 700, y: 450), screenFrame: frame, bars: .zero), frame,
+                       "无边栏时整屏")
+    }
+}
+
+@MainActor
+final class FakeCaptureCancellationShortcut: CaptureCancellationShortcut {
+    private var callback: (() -> Void)?
+    private(set) var registrations = 0
+    private(set) var unregistrations = 0
+
+    func registerCancellation(onPressed: @escaping () -> Void) throws {
+        callback = onPressed
+        registrations += 1
+    }
+
+    func unregister() {
+        if callback != nil { unregistrations += 1 }
+        callback = nil
+    }
+
+    func pressEscape() {
+        callback?()
     }
 }
 

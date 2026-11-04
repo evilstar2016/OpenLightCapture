@@ -40,7 +40,10 @@ enum AnnotationToolbarStyle {
 
     static func update(_ button: NSButton, selected: Bool, enabled: Bool) {
         button.state = selected ? .on : .off
-        button.contentTintColor = selected ? .controlAccentColor : .labelColor
+        // Dim inactive buttons far below the enabled look so a gray icon is
+        // never mistaken for a clickable one on the floating dark plate.
+        button.contentTintColor = enabled ? (selected ? .controlAccentColor : .labelColor) : .disabledControlTextColor
+        button.alphaValue = enabled ? 1 : 0.45
         button.isEnabled = enabled
     }
 

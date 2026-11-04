@@ -4,6 +4,24 @@ import os
 
 @MainActor
 final class CaptureFlowController {
+    private let watermarkStore: WatermarkTemplateStore
+    private(set) var watermarkContext: CaptureWatermarkContext?
+
+    init(watermarkStore: WatermarkTemplateStore = .shared) {
+        self.watermarkStore = watermarkStore
+    }
+
+    func prepareWatermarks(for session: ActiveCaptureSession) {
+        guard sessions.isCurrent(sessionID: session.id, generation: session.generation) else { return }
+        let library = watermarkStore.snapshot()
+        watermarkContext = CaptureWatermarkContext(sessionID: session.id, generation: session.generation, library: library, selection: library.defaultSelection)
+    }
+
+    private func watermarkLibrary(for session: ActiveCaptureSession) -> WatermarkLibrarySnapshot {
+        guard let context = watermarkContext, context.sessionID == session.id, context.generation == session.generation else { return .empty }
+        return context.library
+    }
+
     var onSessionActivityChange: ((Bool) -> Void)?
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "io.github.evilstar2016.openlightcapture", category: "CaptureFlow")
     let sessions = CaptureSessionCoordinator()
@@ -16,6 +34,10 @@ final class CaptureFlowController {
     private var editorWindow: AnnotationEditorWindowController?
 
     var onLongCaptureRequested: ((FrozenScreen, CGRect, ActiveCaptureSession) -> Void)?
+    var onRecordingRequested: ((CapturedDisplay, CGRect, ActiveCaptureSession, Bool) -> Void)?
+    var onRecordingPresent: (() -> Void)?
+    var onRecordingCancel: (() -> Void)?
+    var onRecordingEnvironmentChange: (() -> Bool)?
     var onImageReady: ((CGImage, ActiveCaptureSession) async -> Bool)?
     var onSaveImageRequested: ((CGImage, ActiveCaptureSession) async -> Bool)?
     var onSessionCancelled: (() -> Void)?
@@ -31,7 +53,9 @@ final class CaptureFlowController {
         logger.info("Capture begin requested: \(String(describing: mode), privacy: .public)")
         if let current = sessions.activeSession {
             logger.info("Capture request reused active session in state \(String(describing: current.state), privacy: .public)")
-            if current.state == .editing {
+            if current.mode.isRecording, current.state != .selecting, current.state != .preparing {
+                onRecordingPresent?()
+            } else if current.state == .editing {
                 editorWindow?.showWindow()
             } else {
                 selectionWindows.forEach { $0.orderFrontRegardless() }
@@ -41,6 +65,7 @@ final class CaptureFlowController {
 
         focusedApplication = FocusContext.capture(fallbackProcessID: lastExternalProcessID)
         guard let session = sessions.begin(mode: mode, targetProcessID: focusedApplication?.processIdentifier) else { return }
+        prepareWatermarks(for: session)
         onSessionActivityChange?(true)
         logger.info("Capture session started: \(session.id.uuidString, privacy: .public)")
 
@@ -49,7 +74,12 @@ final class CaptureFlowController {
 
     func cancelCurrentSession(restoreFocus: Bool = true) {
         guard let session = sessions.activeSession else { return }
+        if session.mode.isRecording, let onRecordingCancel, session.state != .selecting, session.state != .preparing {
+            onRecordingCancel()
+            return
+        }
         _ = sessions.cancel(sessionID: session.id, generation: session.generation)
+        watermarkContext = nil
         onSessionCancelled?()
         closeSelectionWindows()
         editorWindow?.close()
@@ -63,6 +93,11 @@ final class CaptureFlowController {
     @discardableResult
     func cancelForEnvironmentChange() -> Bool {
         guard sessions.activeSession != nil else { return false }
+        if sessions.activeSession?.mode.isRecording == true, sessions.activeSession?.state != .selecting,
+           sessions.activeSession?.state != .preparing, let onRecordingEnvironmentChange
+        {
+            return onRecordingEnvironmentChange()
+        }
         cancelCurrentSession(restoreFocus: false)
         return true
     }
@@ -72,6 +107,18 @@ final class CaptureFlowController {
         guard sessions.activeSession != nil else { return false }
         cancelCurrentSession(restoreFocus: false)
         onScreenPermissionRevocation()
+        return true
+    }
+
+    /// Cancels a capture that has not produced content yet when the visible
+    /// Space or Mission Control page switches, so the next hotkey press starts
+    /// a fresh capture instead of reusing a selection the user can no longer
+    /// see. Editor and recording states manage their own lifecycle.
+    @discardableResult
+    func cancelForSpaceChange() -> Bool {
+        guard let session = sessions.activeSession else { return false }
+        guard session.state == .selecting || session.state == .preparing else { return false }
+        cancelCurrentSession(restoreFocus: false)
         return true
     }
 
@@ -126,6 +173,7 @@ final class CaptureFlowController {
             focusedApplication?.restore()
         }
         guard let session = sessions.begin(mode: mode, targetProcessID: targetProcessID) else { return }
+        prepareWatermarks(for: session)
         try? await Task.sleep(for: .milliseconds(150))
         guard !Task.isCancelled, sessions.isCurrent(sessionID: session.id, generation: session.generation) else { return }
         await captureDisplays(for: session)
@@ -137,13 +185,21 @@ final class CaptureFlowController {
             first.screenFrame.contains(NSEvent.mouseLocation) == false && second.screenFrame.contains(NSEvent.mouseLocation)
         }
         selectionWindows = screens.map { screen in
-            let window = SelectionOverlayWindow(screen: screen, initialMode: session.mode)
+            let window = SelectionOverlayWindow(screen: screen, initialMode: session.mode, watermarkLibrary: watermarkLibrary(for: session))
             window.onCancel = { [weak self] in self?.cancelCurrentSession() }
             window.onOutput = { [weak self] image, rect, selectedWindow, save in
                 await self?.publishInlineSelection(image: image, on: screen, localRect: rect, selectedWindow: selectedWindow, save: save) ?? false
             }
-            window.onLongCapture = { [weak self] rect, selectedWindow in
-                self?.completeSelection(on: screen, localRect: rect, selectedWindow: selectedWindow, useLongCapture: true)
+            window.onLongCapture = { [weak self, weak window] rect, selectedWindow in
+                guard let self, let window, sessions.isCurrent(sessionID: session.id, generation: session.generation) else { return }
+                watermarkContext?.selection = window.watermarkSelection
+                completeSelection(on: screen, localRect: rect, selectedWindow: selectedWindow, useLongCapture: true)
+            }
+            window.onGIFCapture = { [weak self] rect, selectedWindow in
+                self?.beginRecordingSelection(screen: screen, localRect: rect, selectedWindow: selectedWindow, mode: .gif)
+            }
+            window.onVideoCapture = { [weak self] rect, selectedWindow in
+                self?.beginRecordingSelection(screen: screen, localRect: rect, selectedWindow: selectedWindow, mode: .video)
             }
             return window
         }
@@ -151,6 +207,51 @@ final class CaptureFlowController {
         selectionWindows.forEach { $0.present() }
         let overlayCount = selectionWindows.count
         logger.info("Selection overlays presented: \(overlayCount, privacy: .public)")
+    }
+
+    private func beginRecordingSelection(screen: FrozenScreen, localRect: CGRect, selectedWindow: CapturedWindow?, mode: CaptureMode) {
+        guard let session = sessions.activeSession, session.state == .selecting,
+              let global = screen.transform.globalScreenRect(fromLocalTopLeftRect: localRect),
+              let pixels = screen.transform.pixelRect(fromGlobalScreenRect: global), pixels.width >= 1, pixels.height >= 1
+        else { return }
+        if mode == .video, RecordingOptions.video.outputSize(width: Int(pixels.width), height: Int(pixels.height)) == .zero {
+            showError(L10n.videoTitle, detail: L10n.videoSmallRegion)
+            return
+        }
+        guard sessions.changeMode(sessionID: session.id, generation: session.generation, to: mode) else { return }
+        if let target = selectedWindow ?? CapturedWindow.target(for: global, in: screen.windows) {
+            sessions.setTarget(sessionID: session.id, generation: session.generation, processID: target.processIdentifier, windowID: target.id)
+        }
+        let display = CapturedDisplay(screen)
+        closeSelectionWindows()
+        frozenScreens.removeAll()
+        _ = sessions.transition(sessionID: session.id, generation: session.generation, to: .recordingReady)
+        guard let current = sessions.activeSession else { return }
+        // Confirming a region through the record buttons is an explicit intent:
+        // start the countdown right away instead of parking on the ready panel.
+        onRecordingRequested?(display, pixels, current, true)
+    }
+
+    func restoreTargetFocus() {
+        if let pid = sessions.activeSession?.targetProcessID,
+           let target = NSRunningApplication(processIdentifier: pid), !target.isTerminated
+        {
+            target.activate(options: [.activateAllWindows])
+        } else { focusedApplication?.restore() }
+    }
+
+    func reselectRecording(_ session: ActiveCaptureSession) async {
+        guard sessions.isCurrent(sessionID: session.id, generation: session.generation) else { return }
+        _ = sessions.transition(sessionID: session.id, generation: session.generation, to: .preparing)
+        await captureDisplays(for: session)
+    }
+
+    func finishRecordingSession(_ session: ActiveCaptureSession, restoreFocus: Bool = true) {
+        guard sessions.activeSession?.id == session.id, sessions.activeSession?.generation == session.generation else { return }
+        if sessions.activeSession?.state == .cancelling {
+            sessions.completeCancellation(sessionID: session.id, generation: session.generation)
+        }
+        finishCurrentSession(session, restoreFocus: restoreFocus)
     }
 
     func publishInlineSelection(image: CGImage, on screen: FrozenScreen, localRect: CGRect, selectedWindow: CapturedWindow?, save: Bool) async -> Bool {
@@ -236,13 +337,20 @@ final class CaptureFlowController {
         }
 
         guard sessions.transition(sessionID: session.id, generation: session.generation, to: .preparingOutput) else { return }
+        let snapshot = AnnotationDocument(image: croppedImage, watermark: watermarkContext?.selection).renderSnapshot()
         Task { @MainActor [weak self] in
             guard let self else { return }
-            if await deliver(croppedImage, session: session, save: false) { return }
+            var banner = L10n.errorCopyRetained
+            do {
+                let output = try await AnnotationRenderer.render(snapshot)
+                if await deliver(output, session: session, save: false) { return }
+            } catch {
+                banner = error.localizedDescription
+            }
             guard sessions.isCurrent(sessionID: session.id, generation: session.generation),
                   sessions.transition(sessionID: session.id, generation: session.generation, to: .editing)
             else { return }
-            presentEditor(image: croppedImage, session: session, bannerMessage: L10n.errorCopyRetained, annotationPixelScale: CGFloat(screen.image.width) / screen.screenFrame.width)
+            presentEditor(image: croppedImage, session: session, bannerMessage: banner, annotationPixelScale: CGFloat(screen.image.width) / screen.screenFrame.width)
         }
     }
 
@@ -282,7 +390,9 @@ final class CaptureFlowController {
                 Task { @MainActor [weak self] in await self?.changeCaptureSource(to: mode) }
             },
             bannerMessage: bannerMessage,
-            annotationPixelScale: annotationPixelScale
+            annotationPixelScale: annotationPixelScale,
+            watermarkLibrary: watermarkLibrary(for: session),
+            watermark: watermarkContext?.selection
         )
         editorWindow?.showWindow()
     }
@@ -302,13 +412,14 @@ final class CaptureFlowController {
         return true
     }
 
-    private func finishCurrentSession(_ session: ActiveCaptureSession) {
+    private func finishCurrentSession(_ session: ActiveCaptureSession, restoreFocus: Bool = true) {
         _ = sessions.finish(sessionID: session.id, generation: session.generation)
+        watermarkContext = nil
         closeSelectionWindows()
         frozenScreens.removeAll(keepingCapacity: false)
         editorWindow?.dismissAfterCompletion()
         editorWindow = nil
-        focusedApplication?.restore()
+        if restoreFocus { focusedApplication?.restore() }
         focusedApplication = nil
         notifySessionIdle()
     }
@@ -318,6 +429,7 @@ final class CaptureFlowController {
         // Defer notification until that synchronous cleanup has unwound.
         Task { @MainActor [weak self] in
             guard let self, sessions.activeSession == nil else { return }
+            watermarkContext = nil
             onSessionActivityChange?(false)
         }
     }

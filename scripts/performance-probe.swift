@@ -16,6 +16,30 @@ struct PerformanceProbe {
         try FileManager.default.createDirectory(at: workspace, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: workspace) }
 
+        if CommandLine.arguments.dropFirst(2).first == "watermark" {
+            let result = try watermarks()
+            let data = try JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys])
+            try data.write(to: output.appending(path: "watermark-performance.json"), options: .atomic)
+            print(String(decoding: data, as: UTF8.self))
+            return
+        }
+
+        if CommandLine.arguments.dropFirst(2).first == "video" {
+            let result = try await videoCapacity(workspace: workspace)
+            let data = try JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys])
+            try data.write(to: output.appending(path: "video-performance.json"), options: .atomic)
+            print(String(decoding: data, as: UTF8.self))
+            return
+        }
+
+        if CommandLine.arguments.dropFirst(2).first == "gif" {
+            let result = try gifCapacity(workspace: workspace)
+            let data = try JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys])
+            try data.write(to: output.appending(path: "gif-performance.json"), options: .atomic)
+            print(String(decoding: data, as: UTF8.self))
+            return
+        }
+
         if CommandLine.arguments.dropFirst(2).first == "capacity" {
             let result = try maximumCapacity(workspace: workspace)
             let data = try JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys])
@@ -47,6 +71,72 @@ struct PerformanceProbe {
         ], options: [.prettyPrinted, .sortedKeys])
         try data.write(to: output.appending(path: "core-performance.json"), options: .atomic)
         print(String(decoding: data, as: UTF8.self))
+    }
+
+    private static func videoCapacity(workspace: URL) async throws -> [String: Any] {
+        let width = 1920, height = 1920, count = 300
+        let recorder = try VideoRecorder(width: width, height: height, root: workspace)
+        let cancellation = RecordingCancellation()
+        guard let space = CGColorSpace(name: CGColorSpace.sRGB),
+              let context = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
+                                      space: space, bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue)
+        else { throw VideoError.encoding }
+        let started = Date()
+        for index in 0 ..< count {
+            let image = try autoreleasepool {
+                context.setFillColor(CGColor(gray: 0.15, alpha: 1))
+                context.fill(CGRect(x: 0, y: 0, width: width, height: height))
+                context.setFillColor(CGColor(red: 0.2, green: 0.8, blue: 0.5, alpha: 1))
+                context.fill(CGRect(x: index * 5 % 1500, y: index * 3 % 1500, width: 300, height: 300))
+                guard let image = context.makeImage() else { throw VideoError.encoding }
+                return image
+            }
+            _ = try await recorder.append(image, at: Double(index) / 30, cancellation: cancellation)
+        }
+        let result = try await recorder.finish(at: 600, cancellation: cancellation)
+        return [
+            "scope": "300 changing synthetic frames at 30 fps, 1920-square maximum size, then a static tail to the 600-second limit. Real H.264/MP4 output and AVFoundation inspection; no live screen, UI, sound, or clipboard. Not a full 10-minute real-time stress test.",
+            "width": width, "height": height, "submitted_frames": count,
+            "duration_seconds": result.duration, "encoded_bytes": result.byteCount,
+            "write_and_finish_seconds": Date().timeIntervalSince(started),
+            "physical_footprint_after_phase_mib": physicalFootprintMiB(),
+        ]
+    }
+
+    private static func gifCapacity(workspace: URL) throws -> [String: Any] {
+        let width = 1280, height = 1280, count = 300
+        let first = workspace.appending(path: "frame-000000.rgba")
+        var bytes = Data(count: width * height * 4)
+        bytes.withUnsafeMutableBytes { raw in
+            let pixels = raw.bindMemory(to: UInt8.self)
+            for y in 0 ..< height {
+                for x in 0 ..< width {
+                    let index = (y * width + x) * 4
+                    pixels[index] = UInt8((x / 5) % 256)
+                    pixels[index + 1] = UInt8((y / 5) % 256)
+                    pixels[index + 2] = UInt8(((x + y) / 7) % 256)
+                    pixels[index + 3] = 255
+                }
+            }
+        }
+        try bytes.write(to: first)
+        bytes = Data()
+        // Hard links avoid writing 1.8 GiB for a memory/encoder capacity probe.
+        // Each record still traverses the production native encoder and streamed container.
+        for index in 1 ..< count {
+            try FileManager.default.linkItem(at: first, to: workspace.appending(path: String(format: "frame-%06d.rgba", index)))
+        }
+        let frames = (0 ..< count).map { GIFFrameRecord(filename: String(format: "frame-%06d.rgba", $0), offset: Double($0) / 10) }
+        let recording = GIFRecording(directory: workspace, width: width, height: height, frames: frames, duration: 30)
+        let start = Date()
+        let result = try GIFEncoder.encode(recording, cancellation: RecordingCancellation())
+        return [
+            "scope": "300 full-size native frames from one synthetic gradient, streamed GIF and full ImageIO frame inspection; no real screen, windows, input, or clipboard. Not a worst-case output-entropy or recording-I/O benchmark.",
+            "width": width, "height": height, "frames": result.frameCount,
+            "duration_seconds": result.duration, "encoded_bytes": result.byteCount,
+            "encode_and_inspect_seconds": Date().timeIntervalSince(start),
+            "physical_footprint_after_phase_mib": physicalFootprintMiB(),
+        ]
     }
 
     @MainActor
@@ -178,6 +268,38 @@ struct PerformanceProbe {
         wide["accepted_steps"] = accepted
         wide["output_pixel_identical_to_source"] = true
         return wide
+    }
+
+    @MainActor
+    static func watermarks() throws -> [String: Any] {
+        var measurements: [[String: Any]] = []
+        for (width, height) in [(4000, 4000), (1200, 50000)] {
+            let measurement: [String: Any] = try autoreleasepool {
+                guard let context = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
+                                              space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+                else { throw ProbeError.invalidPixels }
+                context.setFillColor(CGColor(gray: 1, alpha: 1))
+                context.fill(CGRect(x: 0, y: 0, width: width, height: height))
+                guard let image = context.makeImage() else { throw ProbeError.invalidPixels }
+                let watermark = WatermarkSelection(text: "Alice · @example · Internal use only", style: WatermarkStyle(mode: .tiled, opacity: 0.15, angle: -30))
+                let snapshot = AnnotationRenderSnapshot(image: image, cropRect: CGRect(x: 0, y: 0, width: width, height: height), annotations: [], revision: 0, watermark: watermark)
+                let before = physicalFootprintMiB()
+                let start = ProcessInfo.processInfo.systemUptime
+                let output = try AnnotationRenderer.renderSynchronously(snapshot)
+                let elapsed = (ProcessInfo.processInfo.systemUptime - start) * 1000
+                let after = physicalFootprintMiB()
+                for y in [0, height / 2, height - 1000] {
+                    guard let strip = output.cropping(topLeftRect: CGRect(x: 0, y: y, width: width, height: 1000)),
+                          let frame = RGBAFrame(image: strip), frame.bytes.contains(where: { $0 < 245 })
+                    else { throw ProbeError.pixelMismatch }
+                }
+                return ["width": width, "height": height, "pixels": width * height, "render_ms": elapsed,
+                        "physical_footprint_before_mib": before, "physical_footprint_after_mib": after,
+                        "top_middle_bottom_contain_watermark": true]
+            }
+            measurements.append(measurement)
+        }
+        return ["scope": "One synthetic sample per size. Production tiled text render only; no screen capture, windows, clipboard, or PNG encoding. Timing excludes validation. Resource peaks include source/context and strip checks; not P95 or GUI latency.", "measurements": measurements]
     }
 
     static func physicalFootprintMiB() -> Double {

@@ -1,4 +1,5 @@
 import AppKit
+import ApplicationServices
 import CoreGraphics
 
 enum CapturePermissionKind: Hashable {
@@ -31,22 +32,26 @@ enum CapturePermissionKind: Hashable {
 
 @MainActor
 final class CapturePermissionAuthorization {
-    static let shared = CapturePermissionAuthorization()
+    static let shared = makeShared()
+
+    private static func makeShared() -> CapturePermissionAuthorization {
+        CapturePermissionAuthorization(grantPreflight: { permission in
+            await CapturePermissionSystemAccess.isPermissionEnabled(permission)
+        })
+    }
 
     private let preflight: @MainActor (CapturePermissionKind) async -> Bool
+    private let grantPreflight: @MainActor (CapturePermissionKind) async -> Bool
     private let request: @MainActor (CapturePermissionKind) async -> Void
-    private let confirm: @MainActor (CapturePermissionKind) async -> Bool
-    private let openSettings: (URL) -> Void
     private let confirmRestart: @MainActor () async -> Bool
     private let restartApplication: () -> Void
-    private var requestedPermissions: Set<CapturePermissionKind> = []
     private var awaitingPermissions: Set<CapturePermissionKind> = []
     private var restartRequiredPermissions: Set<CapturePermissionKind> = []
     private var isPresenting = false
     private var isAuthorizing = false
+    private var isRequestingSystemAccess = false
     private var isCheckingPermissions = false
     private var settingsVisitID = UUID()
-    private var hasVisitedSettings = false
     private var isMonitoring = false
     private var pollingTask: Task<Void, Never>?
     private var restartPromptTask: Task<Void, Never>?
@@ -59,16 +64,7 @@ final class CapturePermissionAuthorization {
         request: @escaping @MainActor (CapturePermissionKind) async -> Void = { permission in
             await CapturePermissionSystemAccess.request(permission)
         },
-        confirm: @escaping @MainActor (CapturePermissionKind) async -> Bool = { permission in
-            let alert = NSAlert()
-            alert.messageText = permission.title
-            alert.informativeText = permission.explanation
-            alert.alertStyle = .informational
-            alert.addButton(withTitle: L10n.permissionAuthorize)
-            alert.addButton(withTitle: L10n.permissionLater)
-            return await PermissionAlertPresenter.shared.present(alert)
-        },
-        openSettings: @escaping (URL) -> Void = { NSWorkspace.shared.open($0) },
+        grantPreflight: (@MainActor (CapturePermissionKind) async -> Bool)? = nil,
         confirmRestart: @escaping @MainActor () async -> Bool = {
             let alert = CapturePermissionAuthorization.makeRestartAlert()
             return await PermissionAlertPresenter.shared.present(alert)
@@ -76,17 +72,16 @@ final class CapturePermissionAuthorization {
         restartApplication: @escaping () -> Void = { AppRelauncher.restart() }
     ) {
         self.preflight = preflight
+        self.grantPreflight = grantPreflight ?? preflight
         self.request = request
-        self.confirm = confirm
-        self.openSettings = openSettings
         self.confirmRestart = confirmRestart
         self.restartApplication = restartApplication
     }
 
     func hasAccess(to permission: CapturePermissionKind) async -> Bool {
-        guard !restartRequiredPermissions.contains(permission) else { return false }
+        guard !awaitingPermissions.contains(permission), !restartRequiredPermissions.contains(permission) else { return false }
         let allowed = await preflight(permission)
-        return allowed && !restartRequiredPermissions.contains(permission)
+        return allowed && !awaitingPermissions.contains(permission) && !restartRequiredPermissions.contains(permission)
     }
 
     /// Called by capture actions, never by the frame or automatic-scroll loop.
@@ -100,21 +95,26 @@ final class CapturePermissionAuthorization {
         if await hasAccess(to: permission) { return !Task.isCancelled && !isPresenting }
         guard !Task.isCancelled else { return false }
         guard !restartRequiredPermissions.contains(permission) else { return false }
-        isPresenting = true
-        let confirmed = await confirm(permission)
-        isPresenting = false
-        guard confirmed, !Task.isCancelled else { return false }
+        isRequestingSystemAccess = true
+        defer { isRequestingSystemAccess = false }
+        if permission == .screenCapture {
+            // macOS owns the lock dialog, its Open System Settings / Deny
+            // actions, and the relaunch prompt after the user enables access.
+            // The request can return while that dialog is still open: do not
+            // open Settings or schedule an app-owned restart reminder here.
+            // Let macOS decide whether to show the native prompt on each
+            // explicit capture attempt, including attempts after a denial.
+            await request(permission)
+            return false
+        }
         awaitingPermissions.insert(permission)
-        hasVisitedSettings = false
         let visitID = UUID()
         settingsVisitID = visitID
-        // Register the app with the system once; later attempts can still open
-        // the exact Settings pane without issuing another native request.
-        if requestedPermissions.insert(permission).inserted {
-            await request(permission)
-        }
+        // The native control-access dialog owns Open System Settings / Deny,
+        // just like the screen-recording dialog. A returned request is not a
+        // grant and must not trigger a Settings jump or a restart reminder.
+        await request(permission)
         guard !Task.isCancelled, settingsVisitID == visitID, awaitingPermissions.contains(permission) else { return false }
-        openSettings(permission.settingsURL)
         beginPollingIfNeeded()
         return false
     }
@@ -133,7 +133,7 @@ final class CapturePermissionAuthorization {
         let applicationObserver = applicationNotificationCenter.addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
             Task { @MainActor [weak self] in
                 guard let self, isMonitoring else { return }
-                await checkForPermissionChanges(returnedFromSettings: hasVisitedSettings)
+                await checkForPermissionChanges()
             }
         }
         registrations.append((applicationNotificationCenter, applicationObserver))
@@ -152,38 +152,33 @@ final class CapturePermissionAuthorization {
         registrations.removeAll()
         awaitingPermissions.removeAll()
         settingsVisitID = UUID()
-        hasVisitedSettings = false
     }
 
     func applicationDidActivate(bundleIdentifier: String?) async {
         guard isMonitoring, !awaitingPermissions.isEmpty else { return }
-        if bundleIdentifier == "com.apple.systempreferences" {
-            hasVisitedSettings = true
-        } else {
-            await checkForPermissionChanges(returnedFromSettings: hasVisitedSettings)
+        if bundleIdentifier == "com.apple.systempreferences" || bundleIdentifier == Bundle.main.bundleIdentifier {
+            await checkForPermissionChanges()
         }
     }
 
-    func checkForPermissionChanges(returnedFromSettings: Bool = false) async {
-        guard !isPresenting, !awaitingPermissions.isEmpty else { return }
+    func checkForPermissionChanges() async {
+        guard !isPresenting, !isRequestingSystemAccess, !awaitingPermissions.isEmpty else { return }
+        guard !isCheckingPermissions else { return }
         let visitID = settingsVisitID
         var granted: Set<CapturePermissionKind> = []
-        // Returning from Settings must never wait for TCC to answer. Its state
-        // can be stale, and the reminder is deliberately conditional on a grant.
-        if !returnedFromSettings {
-            guard !isCheckingPermissions else { return }
-            isCheckingPermissions = true
-            for permission in awaitingPermissions {
-                if await preflight(permission) { granted.insert(permission) }
-            }
-            isCheckingPermissions = false
+        // Keep checking while Settings is active so enabling its switch can
+        // show the reminder without requiring a return to the capture panel.
+        // A settings visit or a returned native request alone is never a grant.
+        isCheckingPermissions = true
+        for permission in awaitingPermissions {
+            if await grantPreflight(permission) { granted.insert(permission) }
         }
-        guard !Task.isCancelled, settingsVisitID == visitID, !isPresenting, !awaitingPermissions.isEmpty else { return }
-        guard !granted.isEmpty || returnedFromSettings else { return }
+        isCheckingPermissions = false
+        guard !Task.isCancelled, settingsVisitID == visitID, !isPresenting, !isRequestingSystemAccess,
+              !awaitingPermissions.isEmpty, !granted.isEmpty else { return }
         restartRequiredPermissions.formUnion(granted)
-        // Clear the pending visit before entering another modal run loop.
+        // Clear the pending visit before showing the reminder.
         awaitingPermissions.removeAll()
-        hasVisitedSettings = false
         pollingTask?.cancel()
         pollingTask = nil
         isPresenting = true
@@ -233,6 +228,20 @@ enum CapturePermissionSystemAccess {
             switch permission {
             case .screenCapture: CGPreflightScreenCaptureAccess()
             case .automaticScroll: CGPreflightPostEventAccess()
+            }
+        }
+    }
+
+    static func isPermissionEnabled(_ permission: CapturePermissionKind) async -> Bool {
+        await perform {
+            switch permission {
+            case .screenCapture: CGPreflightScreenCaptureAccess()
+            case .automaticScroll:
+                // Accessibility trust reflects the control-permission grant.
+                // Event-posting access in this process can still need a
+                // relaunch. This result only schedules a restart; scrolling
+                // continues to require CGPreflightPostEventAccess().
+                AXIsProcessTrusted() || CGPreflightPostEventAccess()
             }
         }
     }

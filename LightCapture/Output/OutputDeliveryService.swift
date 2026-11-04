@@ -7,11 +7,91 @@ final class OutputDeliveryService {
     typealias PNGEncoder = @Sendable (CGImage) async throws -> Data
     private let publisher: ClipboardPublisher
     private let encoder: PNGEncoder
+    private let gifSaveDestination: (@MainActor () async -> URL?)?
+    private let videoSaveDestination: (@MainActor () async -> URL?)?
     var onPublished: (() -> Void)?
 
-    init(assetStore: AssetStore, pasteboard: NSPasteboard = .general, encoder: @escaping PNGEncoder = OutputDeliveryService.encodePNG) {
+    init(assetStore: AssetStore, pasteboard: NSPasteboard = .general, encoder: @escaping PNGEncoder = OutputDeliveryService.encodePNG,
+         gifSaveDestination: (@MainActor () async -> URL?)? = nil,
+         videoSaveDestination: (@MainActor () async -> URL?)? = nil)
+    {
         publisher = ClipboardPublisher(assetStore: assetStore, pasteboard: pasteboard)
         self.encoder = encoder
+        self.gifSaveDestination = gifSaveDestination
+        self.videoSaveDestination = videoSaveDestination
+    }
+
+    /// Copy a large video via a sibling staging file; never load the movie into Data.
+    func saveVideo(_ result: VideoResult, startedAt: Date, parentWindow: NSWindow?,
+                   isCurrent: @MainActor () -> Bool) async -> VideoSaveOutcome
+    {
+        guard isCurrent(), !Task.isCancelled else { return .cancelled }
+        guard let destination = await chooseSaveDestination(startedAt: startedAt, parentWindow: parentWindow, format: .mp4),
+              isCurrent(), !Task.isCancelled else { return .cancelled }
+        let resolved = destination.resolvingSymlinksInPath().standardizedFileURL.path
+        let protectedRoots = [result.url.deletingLastPathComponent(), VideoRecorder.defaultRoot]
+        guard !protectedRoots.contains(where: {
+            let root = $0.resolvingSymlinksInPath().standardizedFileURL.path
+            return resolved == root || resolved.hasPrefix(root + "/")
+        }) else { return .failed(L10n.videoInvalidMaterial) }
+        let staging = destination.deletingLastPathComponent().appending(path: ".lightcapture-save-\(UUID().uuidString).mp4")
+        do {
+            _ = try await VideoRecorder.inspect(url: result.url)
+            guard isCurrent(), !Task.isCancelled else { return .cancelled }
+            try await Task.detached(priority: .userInitiated) {
+                try FileManager.default.copyItem(at: result.url, to: staging)
+            }.value
+            guard isCurrent(), !Task.isCancelled else {
+                try? FileManager.default.removeItem(at: staging)
+                return .cancelled
+            }
+            try await Task.detached(priority: .userInitiated) {
+                if FileManager.default.fileExists(atPath: destination.path) {
+                    _ = try FileManager.default.replaceItemAt(destination, withItemAt: staging)
+                } else {
+                    try FileManager.default.moveItem(at: staging, to: destination)
+                }
+            }.value
+            return .saved(destination)
+        } catch {
+            try? FileManager.default.removeItem(at: staging)
+            return .failed(error.localizedDescription)
+        }
+    }
+
+    func deliverGIF(_ result: GIFResult, startedAt: Date, save: Bool, previouslySavedURL: URL? = nil,
+                    parentWindow: NSWindow?, isCurrent: @MainActor () -> Bool) async -> GIFDeliveryOutcome
+    {
+        guard isCurrent(), !Task.isCancelled else { return .cancelled }
+        var savedURL = previouslySavedURL
+        if save, savedURL == nil {
+            guard let destination = await chooseSaveDestination(startedAt: startedAt, parentWindow: parentWindow, format: .gif),
+                  isCurrent(), !Task.isCancelled else { return .cancelled }
+            do {
+                try await Task.detached(priority: .userInitiated) {
+                    let checked = try GIFEncoder.inspect(url: result.url)
+                    guard checked.canPublish else { throw GIFError.tooLarge }
+                    try Data(contentsOf: checked.url).write(to: destination, options: .atomic)
+                }.value
+                savedURL = destination
+            } catch { return .failed(savedURL: nil, message: error.localizedDescription) }
+        }
+        guard isCurrent(), !Task.isCancelled else { return .cancelled }
+        do {
+            let asset = try await publisher.prepareGIF(result, startedAt: startedAt, isCurrent: isCurrent)
+            guard isCurrent(), !Task.isCancelled else {
+                publisher.discard(asset)
+                return .cancelled
+            }
+            _ = try publisher.publish(asset)
+            onPublished?()
+            return .completed
+        } catch is CancellationError {
+            return .cancelled
+        } catch {
+            let message = savedURL.map { L10n.gifSavedCopyFailed($0.path, reason: error.localizedDescription) } ?? error.localizedDescription
+            return .failed(savedURL: savedURL, message: message)
+        }
     }
 
     func copy(_ image: CGImage, startedAt: Date, isCurrent: @MainActor () -> Bool = { true }) async -> Bool {
@@ -122,12 +202,14 @@ final class OutputDeliveryService {
                        shouldInterpolate: image.shouldInterpolate, intent: image.renderingIntent) ?? image
     }
 
-    private func chooseSaveDestination(startedAt: Date, parentWindow: NSWindow?) async -> URL? {
+    private func chooseSaveDestination(startedAt: Date, parentWindow: NSWindow?, format: CaptureFileFormat = .png) async -> URL? {
+        if format == .gif, let gifSaveDestination { return await gifSaveDestination() }
+        if format == .mp4, let videoSaveDestination { return await videoSaveDestination() }
         let panel = NSSavePanel()
-        panel.allowedContentTypes = [.png]
+        panel.allowedContentTypes = [format.contentType]
         panel.canCreateDirectories = true
         panel.isExtensionHidden = false
-        panel.nameFieldStringValue = FilenamePolicy.screenshotName(startedAt: startedAt)
+        panel.nameFieldStringValue = FilenamePolicy.screenshotName(startedAt: startedAt, format: format)
 
         if let parentWindow {
             return await withCheckedContinuation { continuation in

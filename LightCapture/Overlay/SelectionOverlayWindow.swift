@@ -11,10 +11,16 @@ final class SelectionOverlayWindow: NSPanel {
     var onCancel: (() -> Void)?
     var onOutput: SelectionOutputHandler?
     var onLongCapture: ((CGRect, CapturedWindow?) -> Void)?
+    var onGIFCapture: ((CGRect, CapturedWindow?) -> Void)?
+    var onVideoCapture: ((CGRect, CapturedWindow?) -> Void)?
 
-    init(screen: FrozenScreen, initialMode: CaptureMode) {
+    var watermarkSelection: WatermarkSelection? {
+        rootView.watermarkSelection
+    }
+
+    init(screen: FrozenScreen, initialMode: CaptureMode, watermarkLibrary: WatermarkLibrarySnapshot = .empty) {
         self.initialMode = initialMode
-        rootView = SelectionOverlayRootView(screen: screen, initialMode: initialMode)
+        rootView = SelectionOverlayRootView(screen: screen, initialMode: initialMode, watermarkLibrary: watermarkLibrary)
         super.init(contentRect: screen.screenFrame, styleMask: [.borderless], backing: .buffered, defer: false)
         isOpaque = false
         backgroundColor = .clear
@@ -40,6 +46,8 @@ final class SelectionOverlayWindow: NSPanel {
         rootView.onLongCapture = { [weak self] rect, window in
             self?.onLongCapture?(rect, window)
         }
+        rootView.onGIFCapture = { [weak self] rect, window in self?.onGIFCapture?(rect, window) }
+        rootView.onVideoCapture = { [weak self] rect, window in self?.onVideoCapture?(rect, window) }
         contentView = rootView
     }
 
@@ -68,6 +76,13 @@ final class SelectionOverlayWindow: NSPanel {
 
 @MainActor
 private final class SelectionOverlayRootView: NSView {
+    private let watermarkLibrary: WatermarkLibrarySnapshot
+    private let watermarkPopover = WatermarkPopoverController()
+    private var watermarkButton: NSButton!
+    var watermarkSelection: WatermarkSelection? {
+        document?.watermark
+    }
+
     private let screen: FrozenScreen
     private let initialMode: CaptureMode
     private let canvas: SelectionCanvasView
@@ -82,6 +97,8 @@ private final class SelectionOverlayRootView: NSView {
     private var undoButton: NSButton!
     private var redoButton: NSButton!
     private var longButton: NSButton!
+    private var gifButton: NSButton!
+    private var videoButton: NSButton!
     private var saveButton: NSButton!
     private var completeButton: NSButton!
     private var annotationCanvas: AnnotationCanvasView?
@@ -101,6 +118,8 @@ private final class SelectionOverlayRootView: NSView {
     var onCancel: (() -> Void)?
     var onOutput: SelectionOutputHandler?
     var onLongCapture: ((CGRect, CapturedWindow?) -> Void)?
+    var onGIFCapture: ((CGRect, CapturedWindow?) -> Void)?
+    var onVideoCapture: ((CGRect, CapturedWindow?) -> Void)?
 
     var keyboardResponder: NSResponder {
         if let textInput { return textInput }
@@ -112,7 +131,8 @@ private final class SelectionOverlayRootView: NSView {
         true
     }
 
-    init(screen: FrozenScreen, initialMode: CaptureMode) {
+    init(screen: FrozenScreen, initialMode: CaptureMode, watermarkLibrary: WatermarkLibrarySnapshot = .empty) {
+        self.watermarkLibrary = watermarkLibrary
         self.screen = screen
         self.initialMode = initialMode
         canvas = SelectionCanvasView(screen: screen)
@@ -125,6 +145,8 @@ private final class SelectionOverlayRootView: NSView {
         sizeLabel.textColor = .labelColor
         badge.addArrangedSubview(sizeLabel)
         badge.identifier = NSUserInterfaceItemIdentifier("capture.selection.size")
+        hintLabel.stringValue = initialMode == .long ? L10n.selectionLongHint : L10n.selectionHint
+        hintLabel.identifier = NSUserInterfaceItemIdentifier("capture.selection.hint")
         hintLabel.font = .systemFont(ofSize: 12)
         hintLabel.textColor = .labelColor
         modeButton.target = self
@@ -151,6 +173,7 @@ private final class SelectionOverlayRootView: NSView {
     }
 
     func dismiss() {
+        watermarkPopover.close()
         isDismissed = true
         renderTask?.cancel()
         renderTask = nil
@@ -193,8 +216,17 @@ private final class SelectionOverlayRootView: NSView {
             toolbar.addArrangedSubview(button)
         }
         toolbar.addArrangedSubview(separator())
+        watermarkButton = iconButton("drop.halffull", title: L10n.watermarkTitle, action: #selector(editWatermark(_:)))
+        watermarkButton.identifier = NSUserInterfaceItemIdentifier("capture.action.watermark")
+        toolbar.addArrangedSubview(watermarkButton)
         longButton = iconButton("rectangle.expand.vertical", title: initialMode == .long ? L10n.actionStartLong : L10n.longTitle, action: #selector(startLongCapture))
         toolbar.addArrangedSubview(longButton)
+        gifButton = iconButton("record.circle", title: L10n.gifTitle, action: #selector(startGIFCapture))
+        gifButton.identifier = NSUserInterfaceItemIdentifier("capture.selection.gif")
+        toolbar.addArrangedSubview(gifButton)
+        videoButton = iconButton("video", title: L10n.videoTitle, action: #selector(startVideoCapture))
+        videoButton.identifier = NSUserInterfaceItemIdentifier("capture.selection.video")
+        toolbar.addArrangedSubview(videoButton)
         toolbar.addArrangedSubview(separator())
         undoButton = iconButton("arrow.uturn.backward", title: L10n.actionUndo, action: #selector(undo))
         redoButton = iconButton("arrow.uturn.forward", title: L10n.actionRedo, action: #selector(redo))
@@ -207,6 +239,14 @@ private final class SelectionOverlayRootView: NSView {
         completeButton = iconButton("checkmark", title: L10n.actionComplete, action: #selector(completeSelection))
         completeButton.contentTintColor = .controlAccentColor
         toolbar.addArrangedSubview(completeButton)
+        if initialMode.isRecording {
+            for button in toolButtons {
+                button.isHidden = true
+            }
+            for button in [watermarkButton, longButton, undoButton, redoButton, saveButton, completeButton] {
+                button?.isHidden = true
+            }
+        }
     }
 
     private func configurePalette() {
@@ -237,6 +277,16 @@ private final class SelectionOverlayRootView: NSView {
         sizeLabel.stringValue = "\(Int(pixels.width)) × \(Int(pixels.height)) px"
         badge.isHidden = false
         instructionBar.isHidden = true
+        if initialMode == .long {
+            // The menu already chose scrolling capture. A completed region
+            // goes straight to its mode panel, without screenshot editing.
+            if !canvas.isDraggingSelection {
+                document = AnnotationDocument(image: screen.image, cropRect: pixels, watermark: watermarkLibrary.defaultSelection)
+                startLongCapture()
+            }
+            needsLayout = true
+            return
+        }
         if canvas.isDraggingSelection {
             finishTextEditing(commit: true)
             annotationCanvas?.isHidden = true
@@ -246,7 +296,7 @@ private final class SelectionOverlayRootView: NSView {
             if let document {
                 document.setCropRect(pixels)
             } else {
-                let document = AnnotationDocument(image: screen.image, cropRect: pixels)
+                let document = AnnotationDocument(image: screen.image, cropRect: pixels, watermark: initialMode.isRecording ? nil : watermarkLibrary.defaultSelection)
                 self.document = document
                 let annotations = AnnotationCanvasView(document: document)
                 annotations.fillsBounds = true
@@ -295,6 +345,11 @@ private final class SelectionOverlayRootView: NSView {
 
     private func updateToolState() {
         let enabled = document != nil && !isFinishing && !isDismissed
+        if let watermarkButton {
+            AnnotationToolbarStyle.update(watermarkButton, selected: document?.watermark != nil, enabled: enabled && !initialMode.isRecording)
+            watermarkButton.toolTip = L10n.watermarkTitle + ": " + (document?.watermark.map { $0.sourceName ?? L10n.watermarkCustom } ?? L10n.watermarkNone)
+            watermarkButton.setAccessibilityLabel(watermarkButton.toolTip)
+        }
         for button in toolButtons {
             let selected = button.tag == currentTool.rawValue
             AnnotationToolbarStyle.update(button, selected: selected, enabled: enabled)
@@ -304,13 +359,21 @@ private final class SelectionOverlayRootView: NSView {
         annotationCanvas?.isInteractionEnabled = enabled
         canvas.isInteractionEnabled = !isFinishing
         let hasMarks = document?.annotations.isEmpty == false
-        longButton?.isEnabled = enabled && !hasMarks
+        AnnotationToolbarStyle.update(longButton, selected: false, enabled: enabled && !hasMarks)
         longButton?.toolTip = hasMarks ? L10n.selectionLongAfterMarks : L10n.longTitle
+        let hasRecordingEdits = hasMarks || document?.watermark != nil
+        // Recording drops the screenshot editing layers, so the buttons stay
+        // clickable and offer to clear the watermark and marks first.
+        AnnotationToolbarStyle.update(gifButton, selected: false, enabled: enabled)
+        gifButton?.toolTip = hasRecordingEdits ? L10n.recordingClearsEdits : L10n.gifTitle
+        AnnotationToolbarStyle.update(videoButton, selected: false, enabled: enabled)
+        videoButton?.toolTip = hasRecordingEdits ? L10n.recordingClearsEdits : L10n.videoTitle
         saveButton?.isEnabled = enabled
         completeButton?.isEnabled = enabled
         undoButton?.isEnabled = enabled && document?.canUndo == true
         redoButton?.isEnabled = enabled && document?.canRedo == true
         palette.update(for: currentTool, enabled: enabled)
+        if initialMode.isRecording { palette.isHidden = true }
         palette.isHidden = palette.isHidden || toolbar.isHidden
     }
 
@@ -384,8 +447,60 @@ private final class SelectionOverlayRootView: NSView {
     }
 
     @objc private func startLongCapture() {
-        guard !isFinishing, document?.annotations.isEmpty == true, let rect = canvas.selectionRect else { return }
+        guard !isFinishing, !isDismissed, document?.annotations.isEmpty == true, let rect = canvas.selectionRect else { return }
+        isFinishing = true
+        canvas.isInteractionEnabled = false
+        watermarkPopover.close()
         onLongCapture?(rect, canvas.selectedWindow)
+    }
+
+    @objc private func startGIFCapture() {
+        recordSelection(mode: .gif)
+    }
+
+    @objc private func startVideoCapture() {
+        recordSelection(mode: .video)
+    }
+
+    private func recordSelection(mode: CaptureMode) {
+        guard !isFinishing, !isDismissed, let rect = canvas.selectionRect else { return }
+        finishTextEditing(commit: true)
+        watermarkPopover.close()
+        guard let document, document.annotations.isEmpty, document.watermark == nil else {
+            confirmClearingRecordingEdits { [weak self] in self?.recordSelection(mode: mode) }
+            return
+        }
+        if mode == .gif {
+            onGIFCapture?(rect, canvas.selectedWindow)
+        } else {
+            onVideoCapture?(rect, canvas.selectedWindow)
+        }
+    }
+
+    /// GIF/video cannot carry the screenshot editing layers, so clearing them
+    /// always needs an explicit confirmation and never happens silently.
+    private func confirmClearingRecordingEdits(then action: @escaping () -> Void) {
+        guard let window else { return }
+        let alert = NSAlert()
+        alert.messageText = L10n.recordingClearTitle
+        alert.informativeText = L10n.recordingClearDetail
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: L10n.recordingClearConfirm)
+        alert.addButton(withTitle: L10n.actionCancel)
+        alert.beginSheetModal(for: window) { [weak self] response in
+            guard response == .alertFirstButtonReturn, let self, !isDismissed, !isFinishing else { return }
+            clearRecordingEdits()
+            action()
+        }
+    }
+
+    private func clearRecordingEdits() {
+        guard let document else { return }
+        for annotation in document.annotations {
+            document.remove(id: annotation.id)
+        }
+        document.setWatermark(nil)
+        synchronizeDocument()
     }
 
     @objc private func completeSelection() {
@@ -403,7 +518,11 @@ private final class SelectionOverlayRootView: NSView {
     }
 
     private func publish(save: Bool) {
+        if initialMode == .long { startLongCapture(); return }
+        if initialMode == .gif { startGIFCapture(); return }
+        if initialMode == .video { startVideoCapture(); return }
         guard !isFinishing, !isDismissed, let document, let rect = canvas.selectionRect else { return }
+        watermarkPopover.close()
         finishTextEditing(commit: true)
         isFinishing = true
         updateToolState()
@@ -426,6 +545,16 @@ private final class SelectionOverlayRootView: NSView {
                 alert.informativeText = error.localizedDescription
                 if let window { alert.beginSheetModal(for: window) { _ in } }
             }
+        }
+    }
+
+    @objc private func editWatermark(_ sender: NSButton) {
+        guard !isFinishing, !isDismissed, !initialMode.isRecording, let document else { return }
+        finishTextEditing(commit: true)
+        watermarkPopover.show(relativeTo: sender, selection: document.watermark, library: watermarkLibrary) { [weak self] selection in
+            guard let self, !isFinishing, !isDismissed else { return }
+            document.setWatermark(selection)
+            synchronizeDocument()
         }
     }
 
@@ -495,6 +624,7 @@ private final class SelectionCanvasView: NSView {
     private var mode: SelectionMode = .area
     private var dragState: DragState?
     private var highlightedWindow: CapturedWindow?
+    private var highlightedDesktopFrame: CGRect?
 
     var selectionRect: CGRect?
     var selectedWindow: CapturedWindow?
@@ -547,8 +677,8 @@ private final class SelectionCanvasView: NSView {
             outline.stroke()
 
             drawResizeHandles(in: selectionRect)
-        } else if mode == .window, let highlightedWindow {
-            if let rect = screen.transform.localTopLeftRect(fromGlobalScreenRect: highlightedWindow.frame) {
+        } else if mode == .window, let hoverFrame = highlightedDesktopFrame ?? highlightedWindow?.frame {
+            if let rect = screen.transform.localTopLeftRect(fromGlobalScreenRect: hoverFrame) {
                 NSColor.systemBlue.setStroke()
                 let outline = NSBezierPath(rect: rect.insetBy(dx: -1, dy: -1))
                 outline.lineWidth = 2
@@ -612,11 +742,7 @@ private final class SelectionCanvasView: NSView {
 
     override func mouseMoved(with event: NSEvent) {
         guard mode == .window else { return }
-        let point = convert(event.locationInWindow, from: nil)
-        let window = windowAt(topLeftPoint: point)
-        guard window != highlightedWindow else { return }
-        highlightedWindow = window
-        needsDisplay = true
+        updateHover(at: convert(event.locationInWindow, from: nil))
     }
 
     override func keyDown(with event: NSEvent) {
@@ -653,21 +779,54 @@ private final class SelectionCanvasView: NSView {
         selectionRect = nil
         selectedWindow = nil
         highlightedWindow = nil
+        highlightedDesktopFrame = nil
+        if mode == .window {
+            let location = NSEvent.mouseLocation
+            updateHover(at: CGPoint(x: location.x - screen.screenFrame.minX, y: screen.screenFrame.maxY - location.y))
+        }
         publishSelection()
     }
 
     private func selectWindow(at topLeftPoint: CGPoint) {
-        guard let window = windowAt(topLeftPoint: topLeftPoint),
-              let rect = screen.transform.localTopLeftRect(fromGlobalScreenRect: window.frame)
-        else {
-            selectionRect = nil
-            selectedWindow = nil
+        if let window = windowAt(topLeftPoint: topLeftPoint),
+           let rect = screen.transform.localTopLeftRect(fromGlobalScreenRect: window.frame)
+        {
+            selectedWindow = window
+            selectionRect = rect
             publishSelection()
             return
         }
-        selectedWindow = window
-        selectionRect = rect
+        if let region = desktopRegion(at: topLeftPoint),
+           let rect = screen.transform.localTopLeftRect(fromGlobalScreenRect: region)
+        {
+            selectedWindow = nil
+            selectionRect = rect
+            publishSelection()
+            return
+        }
+        selectionRect = nil
+        selectedWindow = nil
         publishSelection()
+    }
+
+    private func desktopRegion(at topLeftPoint: CGPoint) -> CGRect? {
+        let globalPoint = CGPoint(x: screen.screenFrame.minX + topLeftPoint.x, y: screen.screenFrame.maxY - topLeftPoint.y)
+        return DesktopSelectionRegion.resolve(point: globalPoint, screenFrame: screen.screenFrame, bars: screen.bars)
+    }
+
+    private func updateHover(at topLeftPoint: CGPoint) {
+        if let window = windowAt(topLeftPoint: topLeftPoint) {
+            guard window != highlightedWindow || highlightedDesktopFrame != nil else { return }
+            highlightedWindow = window
+            highlightedDesktopFrame = nil
+            needsDisplay = true
+            return
+        }
+        let region = desktopRegion(at: topLeftPoint)
+        guard region != highlightedDesktopFrame || highlightedWindow != nil else { return }
+        highlightedWindow = nil
+        highlightedDesktopFrame = region
+        needsDisplay = true
     }
 
     private func windowAt(topLeftPoint: CGPoint) -> CapturedWindow? {

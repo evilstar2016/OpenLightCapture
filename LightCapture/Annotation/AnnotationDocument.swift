@@ -113,12 +113,16 @@ final class AnnotationDocument {
     let image: CGImage
     private(set) var cropRect: CGRect
     private(set) var annotations: [Annotation] = []
+    private(set) var watermark: WatermarkSelection?
+    private let initialWatermark: WatermarkSelection?
     private(set) var revision: UInt64 = 0
     private var undoStack: [AnnotationCommand] = []
     private var redoStack: [AnnotationCommand] = []
 
-    init(image: CGImage, cropRect: CGRect? = nil) {
+    init(image: CGImage, cropRect: CGRect? = nil, watermark: WatermarkSelection? = nil) {
         self.image = image
+        self.watermark = watermark
+        initialWatermark = watermark
         let bounds = CGRect(x: 0, y: 0, width: image.width, height: image.height)
         let initialCrop = cropRect?.standardized.integral.intersection(bounds) ?? bounds
         self.cropRect = initialCrop.width > 0 && initialCrop.height > 0 ? initialCrop : bounds
@@ -133,11 +137,16 @@ final class AnnotationDocument {
     }
 
     var hasUncommittedChanges: Bool {
-        !annotations.isEmpty || cropRect != CGRect(x: 0, y: 0, width: image.width, height: image.height)
+        !annotations.isEmpty || watermark != initialWatermark || cropRect != CGRect(x: 0, y: 0, width: image.width, height: image.height)
     }
 
     func add(_ annotation: Annotation) {
         record(.insert(annotation: annotation, index: annotations.count))
+    }
+
+    func setWatermark(_ selection: WatermarkSelection?) {
+        guard selection != watermark else { return }
+        record(.watermark(old: watermark, new: selection))
     }
 
     func remove(id: UUID) {
@@ -181,7 +190,7 @@ final class AnnotationDocument {
     }
 
     func renderSnapshot() -> AnnotationRenderSnapshot {
-        AnnotationRenderSnapshot(image: image, cropRect: cropRect, annotations: annotations, revision: revision)
+        AnnotationRenderSnapshot(image: image, cropRect: cropRect, annotations: annotations, revision: revision, watermark: watermark)
     }
 
     private func record(_ command: AnnotationCommand) {
@@ -213,6 +222,8 @@ final class AnnotationDocument {
             }
         case let .crop(old, new):
             cropRect = forward ? new : old
+        case let .watermark(old, new):
+            watermark = forward ? new : old
         }
         revision &+= 1
     }
@@ -223,6 +234,7 @@ private enum AnnotationCommand {
     case remove(annotation: Annotation, index: Int)
     case replace(old: Annotation, new: Annotation, index: Int)
     case crop(old: CGRect, new: CGRect)
+    case watermark(old: WatermarkSelection?, new: WatermarkSelection?)
 }
 
 struct AnnotationRenderSnapshot: @unchecked Sendable {
@@ -230,4 +242,5 @@ struct AnnotationRenderSnapshot: @unchecked Sendable {
     let cropRect: CGRect
     let annotations: [Annotation]
     let revision: UInt64
+    var watermark: WatermarkSelection?
 }

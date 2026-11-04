@@ -2,14 +2,14 @@ name: OpenLightCapture
 options:
   bundleIdPrefix: io.github.evilstar2016.openlightcapture
   deploymentTarget:
-    macOS: "14.0"
+    macOS: "13.0"
   createIntermediateGroups: true
   developmentLanguage: en
   knownRegions: [en, zh-Hans]
 settings:
   base:
     SWIFT_VERSION: "6.0"
-    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    MACOSX_DEPLOYMENT_TARGET: "13.0"
     CODE_SIGNING_ALLOWED: "YES"
     CODE_SIGN_IDENTITY: "-"
     ENABLE_APP_SANDBOX: "NO"

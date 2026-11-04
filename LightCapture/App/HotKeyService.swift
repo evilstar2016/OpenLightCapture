@@ -5,7 +5,15 @@ import os
 private let hotKeyLogger = Logger(subsystem: "io.github.evilstar2016.openlightcapture", category: "HotKey")
 
 @MainActor
-final class HotKeyService {
+protocol CaptureCancellationShortcut: AnyObject {
+    func registerCancellation(onPressed: @escaping () -> Void) throws
+    func unregister()
+}
+
+@MainActor
+final class HotKeyService: CaptureCancellationShortcut {
+    private static var nextHotKeyID: UInt32 = 0
+    private nonisolated let hotKeyID: UInt32
     private let logger = hotKeyLogger
     private(set) var configuration = HotKeyConfiguration.load()
     var onConfigurationChange: ((HotKeyConfiguration) -> Void)?
@@ -14,6 +22,20 @@ final class HotKeyService {
     private var hotKey: EventHotKeyRef?
     private var callback: (() -> Void)?
     private var isSuspended = false
+
+    init() {
+        Self.nextHotKeyID &+= 1
+        hotKeyID = Self.nextHotKeyID
+    }
+
+    /// Temporary Escape registration uses Carbon, which needs no additional
+    /// keyboard-monitoring permission, and never changes the saved shortcut.
+    func registerCancellation(onPressed: @escaping () -> Void) throws {
+        uninstall()
+        callback = onPressed
+        isSuspended = false
+        try install(HotKeyConfiguration(keyCode: UInt16(kVK_Escape), carbonModifiers: 0, keyName: "Esc"))
+    }
 
     func register(onPressed: @escaping () -> Void) throws {
         callback = onPressed
@@ -62,13 +84,13 @@ final class HotKeyService {
     }
 
     private func install(_ shortcut: HotKeyConfiguration) throws {
-        logger.info("Registering global screenshot hotkey \(shortcut.displayName, privacy: .public)")
+        logger.info("Registering global capture hotkey \(shortcut.displayName, privacy: .public)")
         var eventType = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
         let userData = Unmanaged.passUnretained(self).toOpaque()
         let installStatus = InstallEventHandler(
             GetApplicationEventTarget(),
             { _, event, userData in
-                guard let event, let userData else { return noErr }
+                guard let event, let userData else { return OSStatus(eventNotHandledErr) }
                 var pressedID = EventHotKeyID()
                 let status = GetEventParameter(
                     event,
@@ -80,11 +102,13 @@ final class HotKeyService {
                     &pressedID
                 )
                 hotKeyLogger.info("Carbon hotkey event delivered: status \(status, privacy: .public), signature \(pressedID.signature, privacy: .public), id \(pressedID.id, privacy: .public)")
-                guard status == noErr, pressedID.id == 1 else { return noErr }
                 let service = Unmanaged<HotKeyService>.fromOpaque(userData).takeUnretainedValue()
-                Task { @MainActor in
-                    service.logger.info("Global screenshot hotkey received")
-                    service.callback?()
+                guard status == noErr, pressedID.signature == OSType(0x4350_494D), pressedID.id == service.hotKeyID else {
+                    return OSStatus(eventNotHandledErr)
+                }
+                Task { @MainActor [weak service] in
+                    service?.logger.info("Global capture hotkey received")
+                    service?.callback?()
                 }
                 return noErr
             },
@@ -100,7 +124,7 @@ final class HotKeyService {
 
         var identifier = EventHotKeyID()
         identifier.signature = OSType(0x4350_494D)
-        identifier.id = 1
+        identifier.id = hotKeyID
         let registerStatus = RegisterEventHotKey(
             UInt32(shortcut.keyCode),
             shortcut.carbonModifiers,
@@ -115,7 +139,7 @@ final class HotKeyService {
             logger.error("RegisterEventHotKey failed for \(shortcut.displayName, privacy: .public) with status \(registerStatus, privacy: .public)")
             throw HotKeyError.registrationFailed(registerStatus, shortcut.displayName)
         }
-        logger.info("Global screenshot hotkey registered: \(shortcut.displayName, privacy: .public)")
+        logger.info("Global capture hotkey registered: \(shortcut.displayName, privacy: .public)")
     }
 
     private func uninstall() {

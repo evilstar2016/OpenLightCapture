@@ -8,6 +8,7 @@ final class LongCaptureController {
     private let streamService = ScreenCaptureStreamService()
     private let automaticScrollAccess = AutomaticScrollAccess()
     private let permissionAuthorization: CapturePermissionAuthorization
+    private let escapeShortcut: any CaptureCancellationShortcut
     private var display: CapturedDisplay?
     private var selectionPixelRect: CGRect?
     private var targetWindowFrame: CGRect?
@@ -15,6 +16,7 @@ final class LongCaptureController {
     private var session: ActiveCaptureSession?
     private var engine: LongCaptureEngine?
     private var controlPanel: LongCaptureControlPanel?
+    private var regionHighlight: LongCaptureRegionHighlight?
     private var mode: LongCaptureMode = .manual
     private var acceptingFrames = false
     private var intakeGeneration: UInt64 = 0
@@ -32,9 +34,12 @@ final class LongCaptureController {
     private var streamStopTask: Task<Void, Never>?
     private var streamStopTaskID: UUID?
 
-    init(captureFlowController: CaptureFlowController, permissionAuthorization: CapturePermissionAuthorization = .shared) {
+    init(captureFlowController: CaptureFlowController, permissionAuthorization: CapturePermissionAuthorization = .shared,
+         escapeShortcut: any CaptureCancellationShortcut = HotKeyService())
+    {
         self.captureFlowController = captureFlowController
         self.permissionAuthorization = permissionAuthorization
+        self.escapeShortcut = escapeShortcut
     }
 
     func begin(screen: FrozenScreen, pixelRect: CGRect, session: ActiveCaptureSession) {
@@ -60,18 +65,22 @@ final class LongCaptureController {
         panel.onUsePartial = { [weak self] in Task { @MainActor in await self?.finishAndPresent(banner: self?.partialReason ?? L10n.longPartialContent) } }
         panel.onCancel = { [weak self] in self?.cancelFromPanel() }
         controlPanel = panel
+        showRegionHighlight()
         panel.present()
+        try? escapeShortcut.registerCancellation { [weak self] in self?.cancelFromPanel() }
     }
 
     func cancel() {
         guard !cancelRequested else { return }
         cancelRequested = true
+        escapeShortcut.unregister()
         acceptingFrames = false
         intakeGeneration &+= 1
         activityTask?.cancel()
         targetValidationTask?.cancel()
         activityTask = nil
         targetValidationTask = nil
+        hideRegionHighlight()
         let panel = controlPanel
         controlPanel = nil
         panel?.orderOut(nil)
@@ -102,6 +111,7 @@ final class LongCaptureController {
               captureFlowController.isCurrent(sessionID: session.id, generation: session.generation)
         else { return }
         if selectedMode == .automatic, await !permissionAuthorization.ensureAccess(to: .automaticScroll) {
+            hideRegionHighlight()
             controlPanel?.showChoices(message: CapturePermissionGuidance.automaticCaptureMessage)
             return
         }
@@ -134,12 +144,14 @@ final class LongCaptureController {
               sourceRect.width > 0, sourceRect.height > 0
         else {
             acceptingFrames = false
+            hideRegionHighlight()
             engine?.cancel()
             engine = nil
             _ = captureFlowController.updateLongCaptureState(sessionID: session.id, generation: session.generation, state: .scrollReady)
             controlPanel?.showChoices(message: L10n.longInvalidSelection)
             return
         }
+        showRegionHighlight()
         do {
             try await streamService.start(
                 display: display,
@@ -180,6 +192,7 @@ final class LongCaptureController {
                   captureFlowController.isCurrent(sessionID: session.id, generation: session.generation)
             else { return }
             acceptingFrames = false
+            hideRegionHighlight()
             engine?.cancel()
             engine = nil
             _ = captureFlowController.updateLongCaptureState(sessionID: session.id, generation: session.generation, state: .scrollReady)
@@ -375,6 +388,7 @@ final class LongCaptureController {
             let image = try engine.finish()
             controlPanel?.close()
             controlPanel = nil
+            escapeShortcut.unregister()
             self.engine = nil
             captureFlowController.presentLongCaptureResult(
                 image: image,
@@ -408,11 +422,29 @@ final class LongCaptureController {
 
     private func stopStreamOnly() async {
         acceptingFrames = false
+        hideRegionHighlight()
         activityTask?.cancel()
         targetValidationTask?.cancel()
         activityTask = nil
         targetValidationTask = nil
         await streamService.stop()
+    }
+
+    private func showRegionHighlight() {
+        guard regionHighlight == nil, let display, let selectionPixelRect,
+              let region = display.transform.globalScreenRect(fromPixelRect: selectionPixelRect) else { return }
+        let currentFrames = NSScreen.screens.map(\.frame)
+        let frames = currentFrames.contains(display.screenFrame) ? currentFrames : [display.screenFrame]
+        let highlight = LongCaptureRegionHighlight(screenFrames: frames, region: region)
+        regionHighlight = highlight
+        highlight.show()
+        // The controls stay above the surrounding shade at the same level.
+        controlPanel?.orderFrontRegardless()
+    }
+
+    private func hideRegionHighlight() {
+        regionHighlight?.close()
+        regionHighlight = nil
     }
 
     private func queueStart(mode: LongCaptureMode) {
@@ -533,6 +565,8 @@ final class LongCaptureController {
     }
 
     private func clearSessionReferences(keepEngine: Bool = false) {
+        escapeShortcut.unregister()
+        hideRegionHighlight()
         display = nil
         selectionPixelRect = nil
         targetWindowFrame = nil

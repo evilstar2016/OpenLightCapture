@@ -11,6 +11,63 @@ final class ScreenCaptureStreamService {
 
     private var stream: SCStream?
     private var relay: ScreenCaptureStreamRelay?
+    private var eventRelay: ScreenCaptureEventRelay?
+    private var recordingSource: (SCContentFilter, SCStreamConfiguration)?
+    private var recordingProbeRect: CGRect?
+    private(set) var recordingDroppedFrames = 0
+
+    func startRecording(display: CapturedDisplay, sourceRect: CGRect, width: Int, height: Int,
+                        options: RecordingOptions, onEvent: @escaping ScreenCaptureEventRelay.Handler,
+                        onFailure: @escaping FailureHandler) async throws
+    {
+        guard stream == nil else { throw ScreenCaptureStreamError.startFailed(L10n.gifStreamStopped) }
+        let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
+        guard let target = content.displays.first(where: { $0.displayID == display.displayID }) else { throw ScreenCaptureStreamError.displayUnavailable }
+        let own = content.applications.filter { $0.processID == ProcessInfo.processInfo.processIdentifier }
+        let filter = SCContentFilter(display: target, excludingApplications: own, exceptingWindows: [])
+        let config = SCStreamConfiguration()
+        config.sourceRect = sourceRect
+        config.width = width
+        config.height = height
+        config.pixelFormat = kCVPixelFormatType_32BGRA
+        config.minimumFrameInterval = CMTime(value: 1, timescale: CMTimeScale(options.targetFPS))
+        config.queueDepth = 3
+        config.showsCursor = options.showsCursor
+        config.capturesAudio = false
+        let receiver = ScreenCaptureEventRelay(onEvent: onEvent, onFailure: onFailure)
+        let capture = SCStream(filter: filter, configuration: config, delegate: receiver)
+        do {
+            try capture.addStreamOutput(receiver, type: .screen, sampleHandlerQueue: DispatchQueue(label: "io.github.evilstar2016.openlightcapture.gif.frames", qos: .userInitiated))
+            try await capture.startCapture()
+            eventRelay = receiver
+            stream = capture
+            recordingSource = (filter, config)
+            let primaryScreenHeight = NSScreen.screens.first?.frame.maxY ?? 0
+            let displayQuartz = CGRect(x: display.screenFrame.minX, y: primaryScreenHeight - display.screenFrame.maxY,
+                                       width: display.screenFrame.width, height: display.screenFrame.height)
+            recordingProbeRect = CGRect(x: displayQuartz.minX + sourceRect.minX, y: displayQuartz.minY + sourceRect.minY,
+                                        width: sourceRect.width, height: sourceRect.height)
+            recordingDroppedFrames = 0
+        } catch {
+            receiver.disable()
+            try? await capture.stopCapture()
+            throw error
+        }
+    }
+
+    func probeRecording() async throws -> CGImage {
+        guard let (filter, config) = recordingSource else { throw GIFError.streamStopped }
+        if #available(macOS 14.0, *) {
+            return try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: config)
+        }
+        guard let rect = recordingProbeRect,
+              let image = CGWindowListCreateImage(rect, [.optionOnScreenOnly, .excludeDesktopElements],
+                                                  kCGNullWindowID, [.bestResolution])
+        else {
+            throw GIFError.streamStopped
+        }
+        return image
+    }
 
     func start(
         display: CapturedDisplay,
@@ -61,6 +118,11 @@ final class ScreenCaptureStreamService {
         self.stream = nil
         relay?.disable()
         relay = nil
+        recordingDroppedFrames = eventRelay?.droppedCount ?? recordingDroppedFrames
+        eventRelay?.disable()
+        eventRelay = nil
+        recordingSource = nil
+        recordingProbeRect = nil
         try? await stream.stopCapture()
     }
 

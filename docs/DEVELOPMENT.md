@@ -2,9 +2,9 @@
 
 ## 环境 / Prerequisites
 
-需要 macOS、完整 Xcode（不仅是 Command Line Tools）、Swift 6、XcodeGen。最近的完整验证使用 macOS 27.0.1、Xcode 27.1、Apple Silicon；最低应用运行目标为 macOS 14，不代表所有旧工具链已经验证。
+需要 macOS、完整 Xcode（不仅是 Command Line Tools）、Swift 6、XcodeGen。最近的完整验证使用 macOS 27.0.1、Xcode 27.1、Apple Silicon；当前源码最低应用运行目标为 macOS 13，不代表所有旧工具链已经验证。
 
-Full Xcode, Swift 6, and XcodeGen are required. SwiftFormat and Python 3 are additionally required by the verification script. Runtime deployment targets macOS 14+, while the recorded toolchain is newer.
+Full Xcode, Swift 6, and XcodeGen are required. SwiftFormat and Python 3 are additionally required by the verification script. The current source targets macOS 13+, while the recorded toolchain is newer.
 
 可通过各工具的官方安装方式安装 [XcodeGen](https://github.com/yonaskolb/XcodeGen)、[SwiftFormat](https://github.com/nicklockwood/SwiftFormat)。使用 Homebrew 时：
 
@@ -64,6 +64,9 @@ The full script regenerates the project, lints Swift, runs tests/coverage, build
 - 普通区域/窗口、Retina/多显示器坐标、边缘与小选区。
 - 标注样式、撤销/重做、输入法组合、文字移动与继续编辑。
 - 手动/自动长图、暂停与部分结果、目标切换及容量上限。
+- 首次录屏授权、自动滚动控制权限的拒绝与授权，以及开启控制权限后的重启提醒。
+- GIF 和视频的倒计时、预览、重录、保存与中断，GIF 另需验证 Finder 文件粘贴。
+- 静态截图与长图中的水印预览、取消、应用与输出。
 - 保存成功/取消、图片接收应用和 Finder 文件粘贴。
 - 中英文、浅深外观、会话期间语言切换。
 
@@ -74,9 +77,13 @@ The full script regenerates the project, lints Swift, runs tests/coverage, build
 ```sh
 bash scripts/performance.sh
 bash scripts/performance.sh build/capacity-local capacity
+bash scripts/performance.sh build/watermark-local watermark
+bash scripts/performance.sh build/gif-capacity-local gif
+bash scripts/performance.sh build/video-capacity-local video
+bash scripts/verify-watermark-ui.sh
 ```
 
-性能探针编译生产核心，在独立进程中使用合成图像、临时工作区和私有剪贴板；不采集真实屏幕，也不代替整机性能与 GUI 时延测量。大容量模式的内存和耗时较高，按需运行。
+性能探针编译生产核心，在独立进程中使用合成图像、临时工作区和私有剪贴板；不采集真实屏幕，也不代替整机性能与 GUI 时延测量。大容量模式的内存和耗时较高，按需运行。GIF 和视频探针使用合成画面验证编码路径。水印 UI 探针短暂打开自己的窗口，验证弹层显示、取消与焦点恢复。
 
 `verify-long-image.py` 使用 Tesseract；其可选裁剪检查及 `verify-image-coverage.py` 另需 Pillow/LittleCMS。它们不是应用或常规 XCTest 的运行依赖。通过各脚本的 `--help` 查看参数，并使用自己的样本和输出图片。
 
@@ -84,4 +91,4 @@ bash scripts/performance.sh build/capacity-local capacity
 
 `build/` 为生成目录，不纳入 Git。运行构建、测试或性能脚本会重新生成缓存、日志和临时文件。清理时先确认需要保留的 app/ZIP；不要对应用实际的数据目录进行构建清理。
 
-当前为 OpenLightCapture 1.0.0（构建 27），发行入口为 [v1.0.0](https://github.com/evilstar2016/OpenLightCapture/releases/tag/v1.0.0)。在 macOS 27.0.1、Apple Silicon、Xcode 27.1 上，199 项 XCTest、双架构 Release、签名与本地化检查通过。DMG 在上传前完成校验与只读挂载检查；当前采用 ad hoc 签名，尚未进行 Apple 公证。真实系统权限和跨应用 GUI 流程仍需实机验收。可运行上述命令重新验证；当前仓库未配置 GitHub Actions 工作流。
+已发布的 OpenLightCapture 1.0.0（构建 27），发行入口为 [v1.0.0](https://github.com/evilstar2016/OpenLightCapture/releases/tag/v1.0.0)。在 macOS 27.0.1、Apple Silicon、Xcode 27.1 上，199 项 XCTest、双架构 Release、签名与本地化检查通过。DMG 在上传前完成校验与只读挂载检查；当前采用 ad hoc 签名，尚未进行 Apple 公证。真实系统权限和跨应用 GUI 流程仍需实机验收。可运行上述命令重新验证；当前仓库未配置 GitHub Actions 工作流。

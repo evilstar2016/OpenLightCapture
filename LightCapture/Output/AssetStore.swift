@@ -23,7 +23,8 @@ struct PreparedAsset {
     let metadata: AssetMetadata
     let directoryURL: URL
     let imageURL: URL
-    let pngData: Data
+    let encodedData: Data
+    var format: CaptureFileFormat = .png
 }
 
 enum AssetStoreError: LocalizedError {
@@ -48,6 +49,7 @@ enum AssetStoreError: LocalizedError {
 final class AssetStore {
     static let privatePasteboardType = NSPasteboard.PasteboardType("io.github.evilstar2016.openlightcapture.asset-id")
     static let pngPasteboardType = NSPasteboard.PasteboardType(UTType.png.identifier)
+    static let gifPasteboardType = NSPasteboard.PasteboardType(UTType.gif.identifier)
 
     private let fileManager: FileManager
     private let rootURL: URL
@@ -110,11 +112,45 @@ final class AssetStore {
                 throw AssetStoreError.unsafeAsset
             }
             metadata.phase = .staging
-            return PreparedAsset(metadata: metadata, directoryURL: directory, imageURL: imageURL, pngData: pngData)
+            return PreparedAsset(metadata: metadata, directoryURL: directory, imageURL: imageURL, encodedData: pngData)
         } catch let error as AssetStoreError {
             throw error
         } catch {
             throw AssetStoreError.fileSystem(error)
+        }
+    }
+
+    /// Reserve on the main actor; validate/read/write the larger GIF off the UI thread.
+    func prepareGIF(_ result: GIFResult, startedAt: Date, isCurrent: @MainActor () -> Bool) async throws -> PreparedAsset {
+        guard result.canPublish, isCurrent() else { throw GIFError.tooLarge }
+        let data = try await Task.detached(priority: .userInitiated) {
+            let checked = try GIFEncoder.inspect(url: result.url)
+            guard checked.canPublish else { throw GIFError.tooLarge }
+            return try Data(contentsOf: checked.url)
+        }.value
+        guard isCurrent(), !Task.isCancelled else { throw CancellationError() }
+        try ensureRoot()
+        let bytes = try directorySize(at: rootURL)
+        let maximum: UInt64 = 2 * 1024 * 1024 * 1024
+        guard UInt64(data.count) <= maximum, bytes <= maximum - UInt64(data.count) else { throw AssetStoreError.insufficientStorage }
+        let id = UUID()
+        let directory = rootURL.appending(path: id.uuidString, directoryHint: .isDirectory)
+        try fileManager.createDirectory(at: directory, withIntermediateDirectories: false, attributes: [.posixPermissions: 0o700])
+        let filename = uniqueFilename(startedAt: startedAt, format: .gif)
+        let imageURL = directory.appending(path: filename)
+        let metadata = AssetMetadata(schemaVersion: 1, assetID: id, relativeFilename: filename, createdAt: startedAt,
+                                     phase: .staging, retiredAt: nil, publicationChangeCount: nil)
+        do {
+            try writeMetadata(metadata, to: directory)
+            try await Task.detached(priority: .userInitiated) {
+                try data.write(to: imageURL, options: .atomic)
+                guard chmod(imageURL.path, 0o600) == 0 else { throw AssetStoreError.unsafeAsset }
+            }.value
+            guard isCurrent(), !Task.isCancelled else { throw CancellationError() }
+            return PreparedAsset(metadata: metadata, directoryURL: directory, imageURL: imageURL, encodedData: data, format: .gif)
+        } catch {
+            try? fileManager.removeItem(at: directory)
+            throw error
         }
     }
 
@@ -326,7 +362,7 @@ final class AssetStore {
 
     private func isSafeImageName(_ value: String?) -> Bool {
         guard let value, !value.isEmpty, value != ".", value != "..",
-              !value.contains("/"), !value.contains("\\"), value.hasSuffix(".png")
+              !value.contains("/"), !value.contains("\\"), value.hasSuffix(".png") || value.hasSuffix(".gif")
         else { return false }
         return true
     }
@@ -359,15 +395,15 @@ final class AssetStore {
         return total
     }
 
-    private func uniqueFilename(startedAt: Date) -> String {
+    private func uniqueFilename(startedAt: Date, format: CaptureFileFormat = .png) -> String {
         let existingNames = Set((try? fileManager.contentsOfDirectory(at: rootURL, includingPropertiesForKeys: nil))?.compactMap { directory in
             readMetadataIfValid(in: directory)?.relativeFilename
         } ?? [])
         var index = 1
-        while existingNames.contains(FilenamePolicy.screenshotName(startedAt: startedAt, copyIndex: index == 1 ? nil : index)) {
+        while existingNames.contains(FilenamePolicy.screenshotName(startedAt: startedAt, copyIndex: index == 1 ? nil : index, format: format)) {
             index += 1
         }
-        return FilenamePolicy.screenshotName(startedAt: startedAt, copyIndex: index == 1 ? nil : index)
+        return FilenamePolicy.screenshotName(startedAt: startedAt, copyIndex: index == 1 ? nil : index, format: format)
     }
 }
 

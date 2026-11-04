@@ -11,6 +11,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let assetStore = AssetStore()
     private lazy var outputDeliveryService = OutputDeliveryService(assetStore: assetStore)
     private lazy var longCaptureController = LongCaptureController(captureFlowController: captureFlowController)
+    private lazy var recordingController = RecordingController(flow: captureFlowController, output: outputDeliveryService)
     private var instanceLockDescriptor: Int32 = -1
     private var captureRequestObserver: NSObjectProtocol?
     private var captureEnvironmentMonitor: CaptureEnvironmentMonitor?
@@ -57,12 +58,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         installApplicationMenu()
         settingsWindowController = SettingsWindowController(hotKeyService: hotKeyService)
         TileStore.cleanupAbandonedWorkspaces()
+        GIFFrameStore.cleanupAbandoned()
+        GIFFrameStore.cleanupAbandoned(root: VideoRecorder.defaultRoot)
         assetStore.startMaintenance()
         outputDeliveryService.onPublished = { [weak self] in self?.showPublishedTip() }
         captureFlowController.onLongCaptureRequested = { [weak self] screen, rect, session in
             self?.longCaptureController.begin(screen: screen, pixelRect: rect, session: session)
         }
         captureFlowController.onSessionCancelled = { [weak self] in self?.longCaptureController.cancel() }
+        captureFlowController.onRecordingRequested = { [weak self] display, rect, session, startsImmediately in
+            self?.recordingController.begin(display: display, pixelRect: rect, session: session, startsImmediately: startsImmediately)
+        }
+        captureFlowController.onRecordingPresent = { [weak self] in self?.recordingController.present() }
+        captureFlowController.onRecordingCancel = { [weak self] in self?.recordingController.cancel() }
+        captureFlowController.onRecordingEnvironmentChange = { [weak self] in self?.recordingController.environmentChanged() ?? false }
         captureFlowController.onImageReady = { [weak self] image, session in
             guard let self else { return false }
             return await outputDeliveryService.copy(image, startedAt: session.startedAt) {
@@ -81,6 +90,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         captureEnvironmentMonitor = CaptureEnvironmentMonitor { [weak self] reason in
             guard let self, captureFlowController.cancelForEnvironmentChange() else { return }
             showStatusTip(L10n.captureRestartHint(reason), duration: .seconds(20))
+        } onSpaceChange: { [weak self] in
+            guard let self, captureFlowController.cancelForSpaceChange() else { return }
+            showStatusTip(L10n.captureRestartHint(L10n.interruptionSpaceChange), duration: .seconds(20))
         }
         captureRequestObserver = NotificationCenter.default.addObserver(forName: .captureRequested, object: nil, queue: .main) { [weak self] notification in
             guard let mode = notification.object as? CaptureMode else { return }
@@ -132,6 +144,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         for item in [
             NSMenuItem(title: L10n.menuCapture, action: #selector(beginCapture(_:)), keyEquivalent: ""),
             NSMenuItem(title: L10n.menuLongCapture, action: #selector(beginLongCapture(_:)), keyEquivalent: ""),
+            NSMenuItem(title: L10n.gifTitle, action: #selector(beginGIFCapture(_:)), keyEquivalent: ""),
+            NSMenuItem(title: L10n.videoTitle, action: #selector(beginVideoCapture(_:)), keyEquivalent: ""),
             NSMenuItem(title: L10n.menuSettings, action: #selector(openSettings), keyEquivalent: ","),
             NSMenuItem(title: L10n.menuPermissionHelp, action: #selector(openPermissionHelp), keyEquivalent: ""),
             NSMenuItem.separator(),
@@ -167,6 +181,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(screenshotItem)
         screenshotMenuItem = screenshotItem
         menu.addItem(NSMenuItem(title: L10n.menuLongCapture, action: #selector(beginLongCapture(_:)), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: L10n.gifTitle, action: #selector(beginGIFCapture(_:)), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: L10n.videoTitle, action: #selector(beginVideoCapture(_:)), keyEquivalent: ""))
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: L10n.menuSettings, action: #selector(openSettings), keyEquivalent: ","))
         menu.addItem(NSMenuItem(title: L10n.menuPermissionHelp, action: #selector(openPermissionHelp), keyEquivalent: ""))
@@ -191,6 +207,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func beginLongCapture(_: Any?) {
         NotificationCenter.default.post(name: .captureRequested, object: CaptureMode.long)
+    }
+
+    @objc private func beginGIFCapture(_: Any?) {
+        NotificationCenter.default.post(name: .captureRequested, object: CaptureMode.gif)
+    }
+
+    @objc private func beginVideoCapture(_: Any?) {
+        NotificationCenter.default.post(name: .captureRequested, object: CaptureMode.video)
     }
 
     @objc private func openSettings() {
@@ -258,6 +282,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 enum CaptureMode: Equatable {
     case normal
     case long
+    case gif
+    case video
+
+    var isRecording: Bool {
+        self == .gif || self == .video
+    }
 }
 
 extension Notification.Name {

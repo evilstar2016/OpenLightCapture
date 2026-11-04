@@ -3,6 +3,12 @@ import AppKit
 enum CaptureSessionState: String {
     case preparing
     case selecting
+    case recordingReady
+    case countingDown
+    case startingRecording
+    case recording
+    case encoding
+    case recordingPreviewing
     case scrollReady
     case capturing
     case paused
@@ -18,7 +24,7 @@ struct ActiveCaptureSession: Equatable {
     let id: UUID
     let generation: UInt64
     let startedAt: Date
-    let mode: CaptureMode
+    var mode: CaptureMode
     var targetProcessID: Int32?
     var targetWindowID: CGWindowID?
     var state: CaptureSessionState
@@ -64,6 +70,20 @@ final class CaptureSessionCoordinator {
         activeSession?.id == sessionID
             && activeSession?.generation == generation
             && activeSession?.state != .cancelling
+    }
+
+    func changeMode(sessionID: UUID, generation: UInt64, to mode: CaptureMode) -> Bool {
+        guard var session = activeSession, session.id == sessionID, session.generation == generation,
+              session.state == .selecting else { return false }
+        session.mode = mode
+        activeSession = session
+        return true
+    }
+
+    func completeCancellation(sessionID: UUID, generation: UInt64) {
+        guard activeSession?.id == sessionID, activeSession?.generation == generation,
+              activeSession?.state == .cancelling else { return }
+        activeSession = nil
     }
 
     func setTarget(sessionID: UUID, generation: UInt64, processID: Int32?, windowID: CGWindowID?) {

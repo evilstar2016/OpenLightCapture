@@ -21,8 +21,21 @@ final class ClipboardPublisher {
 
     func publish(pngData: Data, startedAt: Date) throws -> PreparedAsset {
         let asset = try assetStore.prepare(pngData: pngData, startedAt: startedAt)
+        return try publish(asset)
+    }
+
+    func prepareGIF(_ result: GIFResult, startedAt: Date, isCurrent: @MainActor () -> Bool) async throws -> PreparedAsset {
+        try await assetStore.prepareGIF(result, startedAt: startedAt, isCurrent: isCurrent)
+    }
+
+    func discard(_ asset: PreparedAsset) {
+        assetStore.discard(asset)
+    }
+
+    func publish(_ asset: PreparedAsset) throws -> PreparedAsset {
+        guard asset.format != .mp4 else { throw AssetStoreError.unsafeAsset }
         let item = NSPasteboardItem()
-        item.setData(asset.pngData, forType: AssetStore.pngPasteboardType)
+        item.setData(asset.encodedData, forType: asset.format == .png ? AssetStore.pngPasteboardType : AssetStore.gifPasteboardType)
         item.setString(asset.imageURL.absoluteString, forType: .fileURL)
         item.setString(asset.metadata.assetID.uuidString, forType: AssetStore.privatePasteboardType)
 

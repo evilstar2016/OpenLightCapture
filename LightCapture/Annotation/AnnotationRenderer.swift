@@ -41,7 +41,7 @@ enum AnnotationRenderer {
         else { throw AnnotationRenderError.allocationFailed }
         // Cropping alone needs no new full-sized bitmap or color conversion.
         // Preserve the native profile and transparency when there are no marks.
-        if snapshot.annotations.isEmpty { return base }
+        if snapshot.annotations.isEmpty, snapshot.watermark == nil { return base }
         let colorSpace = CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()
         let bitmapInfo = CGBitmapInfo.byteOrder32Big.union(CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedLast.rawValue))
         guard let context = CGContext(
@@ -108,6 +108,10 @@ enum AnnotationRenderer {
             }
         }
 
+        if let watermark = snapshot.watermark {
+            let layout = try WatermarkLayout(selection: watermark, outputSize: CGSize(width: width, height: height))
+            WatermarkRenderer.draw(layout, in: context)
+        }
         guard let output = context.makeImage() else { throw AnnotationRenderError.allocationFailed }
         return output
     }

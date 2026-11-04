@@ -30,7 +30,7 @@ final class EditorToolbarConsistencyTests: XCTestCase {
         XCTAssertEqual(normal.spacing, long.spacing)
         XCTAssertEqual(try button("capture.annotation.tool.6", in: long).imagePosition, .noImage)
         XCTAssertNil(try button("capture.annotation.tool.6", in: long).image)
-        XCTAssertEqual(long.arrangedSubviews.compactMap { ($0 as? NSButton)?.identifier?.rawValue }, expected + ["capture.action.rectangle.on.rectangle", "capture.action.arrow.uturn.backward", "capture.action.arrow.uturn.forward", "capture.action.square.and.arrow.down", "capture.action.xmark", "capture.action.checkmark"])
+        XCTAssertEqual(long.arrangedSubviews.compactMap { ($0 as? NSButton)?.identifier?.rawValue }, expected + ["capture.action.watermark", "capture.action.rectangle.on.rectangle", "capture.action.arrow.uturn.backward", "capture.action.arrow.uturn.forward", "capture.action.square.and.arrow.down", "capture.action.xmark", "capture.action.checkmark"])
     }
 
     func testOnlyCurrentLongEditorToolIsSelectedAndTinted() throws {
@@ -48,6 +48,20 @@ final class EditorToolbarConsistencyTests: XCTestCase {
                 XCTAssertEqual(button.contentTintColor, button === current ? NSColor.controlAccentColor : .labelColor, button.title)
             }
         }
+    }
+
+    func testToolbarButtonsDimDisabledIconsSoGrayNeverLooksClickable() {
+        let button = AnnotationToolbarStyle.button("circle", title: "record", target: self, action: Selector(("stubAction")))
+        AnnotationToolbarStyle.update(button, selected: false, enabled: false)
+        XCTAssertFalse(button.isEnabled)
+        XCTAssertEqual(button.contentTintColor, NSColor.disabledControlTextColor)
+        XCTAssertLessThan(button.alphaValue, 0.9)
+        AnnotationToolbarStyle.update(button, selected: true, enabled: false)
+        XCTAssertEqual(button.contentTintColor, NSColor.disabledControlTextColor)
+        AnnotationToolbarStyle.update(button, selected: false, enabled: true)
+        XCTAssertTrue(button.isEnabled)
+        XCTAssertEqual(button.contentTintColor, NSColor.labelColor)
+        XCTAssertEqual(button.alphaValue, 1)
     }
 
     func testLongEditorIconActionsStillUndoRedoSaveAndComplete() async throws {
