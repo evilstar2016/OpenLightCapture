@@ -30,6 +30,8 @@
 
 ## 长截图
 
+当前源码支持固定头部：从普通“截图”框选包含固定顶部和滚动正文的区域，在尚未添加标注时开启“保留固定头部（仅一次）”，拖动分隔线贴齐正文顶部，再点击“长截图”选择手动或自动模式。头部只在输出顶部保留一次，匹配与自动滚动使用正文区域。该设置仅作用于本次会话；不适用于固定底栏、多段固定区域或动态变化的正文。直接使用菜单栏“长截图…”仍进入快速模式。
+
 1. 从菜单栏选择“长截图…”，按“长截图 · 框选滚动区域”提示选择同一个窗口的滚动正文，避开固定标题、底栏和滚动条。
 2. 框选后松开鼠标，直接选择手动或自动滚动；也可从普通截图的选区工具栏切入长图。
 3. 手动模式小幅向下滚动；自动模式锁定目标窗口，鼠标可以移出选区，随时使用面板暂停或结束。
@@ -39,6 +41,18 @@
 选区确认后，截图区保持清亮，选区外持续变暗；滚动及暂停时保持，结束、取消或采集失败后恢复。遮罩允许鼠标与滚轮穿透，不会遮挡自动滚动的目标，也不会出现在最终长图中。申请控制权限时暂时恢复亮度，方便操作系统设置。框选后按 `Esc` 可随时取消并恢复亮度，焦点在目标页面也有效；长图会话结束后即停止占用该按键。
 
 目标应用切换、窗口关闭/隐藏/移动或显示器变化时可能停止。无法可靠拼接时会等待、暂停或提示部分结果；“没有更多内容”并不保证已经到达页面底部。可使用已确认的部分，也可取消后重新选择区域。
+
+<a id="ocr"></a>
+
+## 本地文字识别
+
+当前源码提供 OCR，最低要求 macOS 13，支持简体中文、英文和混排横排印刷文字。普通截图框选后点击“识别文字”；长截图先结束采集，再从长图编辑器点击同一按钮。识别使用当前裁剪范围和已渲染的标注、水印。GIF 和视频不提供 OCR 入口。
+
+结果可直接编辑。选择文字后按 `⌘C` 只复制选中部分，窗口保持打开；点击“复制文字并结束”复制完整文本并结束本次截图。复制文字会替换之前的剪贴板内容。识别、预览和编辑本身不修改剪贴板，也不生成用于 Finder 粘贴的图片资产。
+
+“返回截图”或 `Esc` 恢复原选区或长图编辑器，保留标注、裁剪和滚动位置。没有识别到文字或识别失败时，可以重试或返回调整范围；识别中可以取消。长图按完整宽度分段识别并去重。
+
+识别在本机运行，无需账号、网络服务或额外权限。macOS 27+ 每次会话使用独立识别进程，完成或取消后退出并清理私有临时图片。小字号、模糊、旋转、手写或复杂排版的准确率需要自行检查；复制前请核对结果。
 
 <a id="gif"></a>
 ## GIF 动态截图
@@ -115,6 +129,9 @@ OpenLightCapture 的 Bundle ID 为 `io.github.evilstar2016.openlightcapture`，�
 语言、快捷键与登录项意图保存在 macOS 用户偏好中。修改过 Bundle ID 的构建使用自己的偏好域与数据目录。
 
 ## English quick reference
+
+- Source builds provide local Chinese/English OCR from the screenshot toolbar and scrolling-result editor. Edit before copying, use `⌘C` for selected text or Copy Text and Finish for all text; retry or return without replacing the clipboard. macOS 27+ uses a separate local process per recognition session.
+- For a fixed scrolling header, start with a normal area screenshot, enable Keep Header Once before adding annotations, adjust the boundary, then enter scrolling capture. The header is retained once and the body supplies alignment evidence.
 
 - Start with the menu bar or `⇧⌘A`; use `Space` for area/window selection.
 - Annotate directly. Return confirms active text editing first; finish text entry before completing the screenshot. Outside text entry, use the finish action, `Enter`, or `⌘C`. Use `⌘S` to save PNG.

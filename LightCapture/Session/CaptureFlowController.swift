@@ -32,25 +32,33 @@ final class CaptureFlowController {
     private var frozenScreens: [FrozenScreen] = []
     private var selectionWindows: [SelectionOverlayWindow] = []
     private var editorWindow: AnnotationEditorWindowController?
+    private(set) var ocrController: OCRSessionController?
+    var textRecognizer: OCRSessionController.Recognizer = TextRecognitionService.recognize
+    private weak var ocrSourceWindow: NSWindow?
 
-    var onLongCaptureRequested: ((FrozenScreen, CGRect, ActiveCaptureSession) -> Void)?
+    var onLongCaptureRequested: ((FrozenScreen, CGRect, ActiveCaptureSession, LongCaptureRegion) -> Void)?
     var onRecordingRequested: ((CapturedDisplay, CGRect, ActiveCaptureSession, Bool) -> Void)?
     var onRecordingPresent: (() -> Void)?
     var onRecordingCancel: (() -> Void)?
     var onRecordingEnvironmentChange: (() -> Bool)?
     var onImageReady: ((CGImage, ActiveCaptureSession) async -> Bool)?
     var onSaveImageRequested: ((CGImage, ActiveCaptureSession) async -> Bool)?
+    var onTextReady: ((String, ActiveCaptureSession) throws -> Void)?
     var onSessionCancelled: (() -> Void)?
     var onScreenPermissionRevocation: () -> Void = {
         Task { @MainActor in _ = await CapturePermissionAuthorization.shared.ensureAccess(to: .screenCapture) }
     }
 
     var outputPanelParent: NSWindow? {
-        editorWindow?.window ?? selectionWindows.first(where: { $0.isKeyWindow }) ?? selectionWindows.first(where: { $0.isVisible })
+        ocrController?.windowController.window ?? editorWindow?.window ?? selectionWindows.first(where: { $0.isKeyWindow }) ?? selectionWindows.first(where: { $0.isVisible })
     }
 
     func begin(mode: CaptureMode) async {
         logger.info("Capture begin requested: \(String(describing: mode), privacy: .public)")
+        if let ocrController {
+            ocrController.windowController.bringForward()
+            return
+        }
         if let current = sessions.activeSession {
             logger.info("Capture request reused active session in state \(String(describing: current.state), privacy: .public)")
             if current.mode.isRecording, current.state != .selecting, current.state != .preparing {
@@ -79,6 +87,7 @@ final class CaptureFlowController {
             return
         }
         _ = sessions.cancel(sessionID: session.id, generation: session.generation)
+        closeOCR()
         watermarkContext = nil
         onSessionCancelled?()
         closeSelectionWindows()
@@ -155,7 +164,7 @@ final class CaptureFlowController {
     }
 
     private func changeCaptureSource(to mode: CaptureMode) async {
-        guard let previousSession = sessions.activeSession, previousSession.state == .editing else { return }
+        guard ocrController == nil, let previousSession = sessions.activeSession, previousSession.state == .editing else { return }
         editorWindow?.dismissForCaptureSourceChange()
         editorWindow = nil
         _ = sessions.cancel(sessionID: previousSession.id, generation: previousSession.generation)
@@ -190,16 +199,22 @@ final class CaptureFlowController {
             window.onOutput = { [weak self] image, rect, selectedWindow, save in
                 await self?.publishInlineSelection(image: image, on: screen, localRect: rect, selectedWindow: selectedWindow, save: save) ?? false
             }
-            window.onLongCapture = { [weak self, weak window] rect, selectedWindow in
+            window.onLongCapture = { [weak self, weak window] rect, selectedWindow, region in
                 guard let self, let window, sessions.isCurrent(sessionID: session.id, generation: session.generation) else { return }
                 watermarkContext?.selection = window.watermarkSelection
-                completeSelection(on: screen, localRect: rect, selectedWindow: selectedWindow, useLongCapture: true)
+                completeSelection(on: screen, localRect: rect, selectedWindow: selectedWindow, useLongCapture: true, region: region)
             }
             window.onGIFCapture = { [weak self] rect, selectedWindow in
                 self?.beginRecordingSelection(screen: screen, localRect: rect, selectedWindow: selectedWindow, mode: .gif)
             }
             window.onVideoCapture = { [weak self] rect, selectedWindow in
                 self?.beginRecordingSelection(screen: screen, localRect: rect, selectedWindow: selectedWindow, mode: .video)
+            }
+            window.onRecognizeText = { [weak self, weak window] snapshot in
+                guard let self, let window else { return }
+                presentOCR(snapshot: snapshot, sourceWindow: window) { [weak window] in
+                    window?.isCurrentRevision(snapshot.revision) == true
+                }
             }
             return window
         }
@@ -255,7 +270,7 @@ final class CaptureFlowController {
     }
 
     func publishInlineSelection(image: CGImage, on screen: FrozenScreen, localRect: CGRect, selectedWindow: CapturedWindow?, save: Bool) async -> Bool {
-        guard let session = sessions.activeSession, session.state == .selecting,
+        guard ocrController == nil, let session = sessions.activeSession, session.state == .selecting,
               let globalRect = screen.transform.globalScreenRect(fromLocalTopLeftRect: localRect)
         else { return false }
         if let target = selectedWindow ?? CapturedWindow.target(for: globalRect, in: screen.windows) {
@@ -276,13 +291,15 @@ final class CaptureFlowController {
         localRect: CGRect,
         selectedWindow: CapturedWindow?,
         useLongCapture: Bool,
-        openEditor: Bool = false
+        openEditor: Bool = false,
+        region: LongCaptureRegion = LongCaptureRegion()
     ) {
         guard let session = sessions.activeSession, session.state == .selecting,
               let globalRect = screen.transform.globalScreenRect(fromLocalTopLeftRect: localRect),
               let pixelRect = screen.transform.pixelRect(fromGlobalScreenRect: globalRect),
               pixelRect.width >= 1,
-              pixelRect.height >= 1
+              pixelRect.height >= 1,
+              region.bodyRect(width: Int(pixelRect.width), height: Int(pixelRect.height)) != nil
         else {
             return
         }
@@ -317,7 +334,7 @@ final class CaptureFlowController {
             }
             frozenScreens.removeAll(keepingCapacity: false)
             if let onLongCaptureRequested {
-                onLongCaptureRequested(screen, pixelRect, updatedSession)
+                onLongCaptureRequested(screen, pixelRect, updatedSession, region)
             } else {
                 showError(L10n.errorLongUnavailable, detail: L10n.errorLongService)
                 cancelCurrentSession()
@@ -394,11 +411,17 @@ final class CaptureFlowController {
             watermarkLibrary: watermarkLibrary(for: session),
             watermark: watermarkContext?.selection
         )
+        editorWindow?.onRecognizeText = { [weak self] snapshot in
+            guard let self, let editorWindow, let source = editorWindow.window else { return }
+            presentOCR(snapshot: snapshot, sourceWindow: source) { [weak editorWindow] in
+                editorWindow?.isCurrentRevision(snapshot.revision) == true
+            }
+        }
         editorWindow?.showWindow()
     }
 
     private func deliver(_ image: CGImage, session: ActiveCaptureSession, save: Bool) async -> Bool {
-        guard sessions.isCurrent(sessionID: session.id, generation: session.generation) else { return false }
+        guard ocrController == nil, sessions.isCurrent(sessionID: session.id, generation: session.generation) else { return false }
         guard let handler = save ? onSaveImageRequested : onImageReady else {
             showError(L10n.errorOutputTitle, detail: save ? L10n.errorSaveService : L10n.errorClipboardService)
             return false
@@ -413,6 +436,7 @@ final class CaptureFlowController {
     }
 
     private func finishCurrentSession(_ session: ActiveCaptureSession, restoreFocus: Bool = true) {
+        closeOCR()
         _ = sessions.finish(sessionID: session.id, generation: session.generation)
         watermarkContext = nil
         closeSelectionWindows()
@@ -422,6 +446,48 @@ final class CaptureFlowController {
         if restoreFocus { focusedApplication?.restore() }
         focusedApplication = nil
         notifySessionIdle()
+    }
+
+    private func presentOCR(snapshot: AnnotationRenderSnapshot, sourceWindow: NSWindow, sourceIsCurrent: @escaping () -> Bool) {
+        guard ocrController == nil, let session = sessions.activeSession,
+              session.state == .selecting || session.state == .editing else { return }
+        let isCurrent = { [weak self] in
+            self?.sessions.isCurrent(sessionID: session.id, generation: session.generation) == true && sourceIsCurrent()
+        }
+        guard isCurrent() else { return }
+        ocrSourceWindow = sourceWindow
+        let screen = sourceWindow.screen
+        selectionWindows.forEach { $0.setOCRActive(true); $0.orderOut(nil) }
+        editorWindow?.setOCRActive(true)
+        editorWindow?.window?.orderOut(nil)
+        let controller = OCRSessionController(snapshot: snapshot, recognize: textRecognizer, isCurrent: isCurrent, onReturn: { [weak self] in
+            self?.returnFromOCR(session: session)
+        }, onCopy: { [weak self] text in
+            guard let self, isCurrent(), let onTextReady else { throw CancellationError() }
+            try onTextReady(text, session)
+            guard isCurrent() else { throw CancellationError() }
+            finishCurrentSession(session)
+        })
+        ocrController = controller
+        controller.present(on: screen)
+    }
+
+    private func returnFromOCR(session: ActiveCaptureSession) {
+        let source = ocrSourceWindow
+        closeOCR()
+        guard sessions.isCurrent(sessionID: session.id, generation: session.generation) else { return }
+        selectionWindows.forEach { $0.setOCRActive(false); $0.orderFrontRegardless() }
+        if let overlay = source as? SelectionOverlayWindow {
+            overlay.present()
+        } else {
+            editorWindow?.resumeAfterOCR()
+        }
+    }
+
+    private func closeOCR() {
+        ocrController?.dismiss()
+        ocrController = nil
+        ocrSourceWindow = nil
     }
 
     private func notifySessionIdle() {

@@ -15,7 +15,7 @@ final class EditorToolbarConsistencyTests: XCTestCase {
         let expected = ["capture.annotation.tool.7", "capture.annotation.tool.0", "capture.annotation.tool.1", "capture.annotation.tool.2", "capture.annotation.tool.3", "capture.annotation.tool.4", "capture.annotation.tool.5", "capture.annotation.tool.6"]
         XCTAssertEqual(toolButtons(in: normal).map { $0.identifier?.rawValue ?? "" }, expected)
         XCTAssertEqual(toolButtons(in: long).map { $0.identifier?.rawValue ?? "" }, expected)
-        for title in expected + ["capture.action.arrow.uturn.backward", "capture.action.arrow.uturn.forward", "capture.action.square.and.arrow.down", "capture.action.xmark", "capture.action.checkmark"] {
+        for title in expected + ["capture.action.arrow.uturn.backward", "capture.action.arrow.uturn.forward", "capture.action.ocr", "capture.action.square.and.arrow.down", "capture.action.xmark", "capture.action.checkmark"] {
             let a = try button(title, in: normal)
             let b = try button(title, in: long)
             XCTAssertFalse(b.isBordered, title)
@@ -30,7 +30,7 @@ final class EditorToolbarConsistencyTests: XCTestCase {
         XCTAssertEqual(normal.spacing, long.spacing)
         XCTAssertEqual(try button("capture.annotation.tool.6", in: long).imagePosition, .noImage)
         XCTAssertNil(try button("capture.annotation.tool.6", in: long).image)
-        XCTAssertEqual(long.arrangedSubviews.compactMap { ($0 as? NSButton)?.identifier?.rawValue }, expected + ["capture.action.watermark", "capture.action.rectangle.on.rectangle", "capture.action.arrow.uturn.backward", "capture.action.arrow.uturn.forward", "capture.action.square.and.arrow.down", "capture.action.xmark", "capture.action.checkmark"])
+        XCTAssertEqual(long.arrangedSubviews.compactMap { ($0 as? NSButton)?.identifier?.rawValue }, expected + ["capture.action.watermark", "capture.action.rectangle.on.rectangle", "capture.action.arrow.uturn.backward", "capture.action.arrow.uturn.forward", "capture.action.ocr", "capture.action.square.and.arrow.down", "capture.action.xmark", "capture.action.checkmark"])
     }
 
     func testOnlyCurrentLongEditorToolIsSelectedAndTinted() throws {

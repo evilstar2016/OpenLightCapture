@@ -28,7 +28,7 @@ final class InlineAnnotationTests: XCTestCase {
         let canvas = try selectionCanvas(in: overlay)
         var requests = 0
         overlay.onOutput = { _, _, _, _ in XCTFail("长图入口不能直接复制普通截图"); return false }
-        overlay.onLongCapture = { rect, _ in
+        overlay.onLongCapture = { rect, _, _ in
             requests += 1
             XCTAssertEqual(rect, CGRect(x: 120, y: 100, width: 500, height: 300))
         }
@@ -52,7 +52,7 @@ final class InlineAnnotationTests: XCTestCase {
         let overlay = try SelectionOverlayWindow(screen: screen(), initialMode: .long)
         defer { overlay.close() }
         var requests = 0
-        overlay.onLongCapture = { _, _ in requests += 1 }
+        overlay.onLongCapture = { _, _, _ in requests += 1 }
         try select(CGRect(x: 120, y: 100, width: 0, height: 0), in: overlay)
         XCTAssertEqual(requests, 0)
         try select(CGRect(x: 120, y: 100, width: 500, height: 300), in: overlay)
@@ -478,6 +478,110 @@ final class InlineAnnotationTests: XCTestCase {
         XCTAssertTrue(succeeded)
         XCTAssertNil(flow.sessions.activeSession)
         XCTAssertEqual(attempts, 2)
+    }
+
+    func testFixedHeaderDividerPassesNativePixelsAtBothDisplayScalesAndCanBeDisabled() throws {
+        for scale in [1, 2] {
+            for keepsHeader in [true, false] {
+                let overlay = try makeOverlay(scale: scale)
+                defer { overlay.close() }
+                let selection = CGRect(x: 120, y: 100, width: 500, height: 300)
+                try select(selection, in: overlay)
+                let root = try XCTUnwrap(overlay.contentView)
+                let toggle = try button("capture.long.keepHeader", in: root)
+                let divider = try XCTUnwrap(views(in: root).compactMap { $0 as? LongCaptureHeaderView }.first)
+                XCTAssertTrue(divider.isHidden)
+                toggle.performClick(nil)
+                root.layoutSubtreeIfNeeded()
+                XCTAssertFalse(divider.isHidden)
+                XCTAssertEqual(toggle.state, .on)
+                XCTAssertTrue(root.hitTest(root.convert(CGPoint(x: 200, y: 164), to: root.superview)) === divider, "分界线必须位于标注画布之上并接受拖动")
+                try drag(from: CGPoint(x: 200, y: 64), to: CGPoint(x: 200, y: 91), on: divider, window: overlay)
+                if !keepsHeader {
+                    toggle.performClick(nil)
+                    XCTAssertTrue(divider.isHidden)
+                }
+                var received: LongCaptureRegion?
+                var requests = 0
+                overlay.onLongCapture = { rect, _, region in
+                    XCTAssertEqual(rect, selection)
+                    received = region
+                    requests += 1
+                }
+                let start = try button("capture.action.rectangle.expand.vertical", in: root)
+                start.performClick(nil)
+                XCTAssertEqual(received?.fixedHeaderHeight, keepsHeader ? 91 * scale : 0)
+                XCTAssertFalse(toggle.isEnabled)
+                start.performClick(nil)
+                XCTAssertEqual(requests, 1, "切换到长图后不得重复发起采集")
+            }
+        }
+    }
+
+    func testFixedHeaderDividerStaysInsideResizedSelectionAndIsDisabledWithAnnotations() throws {
+        let overlay = try makeOverlay(scale: 2)
+        defer { overlay.close() }
+        try select(CGRect(x: 120, y: 100, width: 500, height: 300), in: overlay)
+        let root = try XCTUnwrap(overlay.contentView)
+        let toggle = try button("capture.long.keepHeader", in: root)
+        let divider = try XCTUnwrap(views(in: root).compactMap { $0 as? LongCaptureHeaderView }.first)
+        toggle.performClick(nil)
+        try drag(from: CGPoint(x: 200, y: 64), to: CGPoint(x: 200, y: 1000), on: divider, window: overlay)
+        XCTAssertEqual(divider.headerHeight, 236, "必须为正文保留至少 64 点")
+        let selector = try selectionCanvas(in: overlay)
+        try drag(from: CGPoint(x: 620, y: 400), to: CGPoint(x: 620, y: 190), on: selector, window: overlay)
+        root.layoutSubtreeIfNeeded()
+        XCTAssertEqual(divider.headerHeight, 26)
+        var received: LongCaptureRegion?
+        overlay.onLongCapture = { _, _, region in received = region }
+        try button("capture.annotation.tool.1", in: root).performClick(nil)
+        let annotations = try annotationCanvas(in: overlay)
+        try drag(from: CGPoint(x: 30, y: 35), to: CGPoint(x: 100, y: 60), on: annotations, window: overlay)
+        XCTAssertFalse(toggle.isEnabled)
+        XCTAssertTrue(divider.isHidden)
+        try button("capture.action.arrow.uturn.backward", in: root).performClick(nil)
+        XCTAssertTrue(toggle.isEnabled)
+        try button("capture.annotation.tool.7", in: root).performClick(nil)
+        try drag(from: CGPoint(x: 620, y: 190), to: CGPoint(x: 620, y: 170), on: selector, window: overlay)
+        XCTAssertFalse(toggle.isEnabled)
+        XCTAssertEqual(toggle.state, .off)
+        try button("capture.action.rectangle.expand.vertical", in: root).performClick(nil)
+        XCTAssertEqual(received?.fixedHeaderHeight, 0)
+    }
+
+    func testFixedHeaderDividerSupportsKeyboardAndRendersInBothAppearances() throws {
+        let overlay = try makeOverlay()
+        defer { overlay.close() }
+        try select(CGRect(x: 120, y: 100, width: 580, height: 330), in: overlay)
+        let root = try XCTUnwrap(overlay.contentView)
+        try button("capture.long.keepHeader", in: root).performClick(nil)
+        let divider = try XCTUnwrap(views(in: root).compactMap { $0 as? LongCaptureHeaderView }.first)
+        overlay.setOCRActive(true)
+        XCTAssertTrue(divider.isHidden)
+        XCTAssertFalse(try button("capture.long.keepHeader", in: root).isEnabled)
+        overlay.setOCRActive(false)
+        XCTAssertFalse(divider.isHidden)
+        XCTAssertTrue(divider.accessibilityPerformIncrement())
+        XCTAssertEqual(divider.headerHeight, 65)
+        XCTAssertTrue(divider.accessibilityPerformDecrement())
+        XCTAssertEqual(divider.headerHeight, 64)
+        for (name, appearance) in [("light", NSAppearance.Name.aqua), ("dark", .darkAqua)] {
+            overlay.appearance = try XCTUnwrap(NSAppearance(named: appearance))
+            root.layoutSubtreeIfNeeded()
+            let bitmap = try XCTUnwrap(root.bitmapImageRepForCachingDisplay(in: root.bounds))
+            root.cacheDisplay(in: root.bounds, to: bitmap)
+            let data = try XCTUnwrap(bitmap.representation(using: .png, properties: [:]))
+            let attachment = XCTAttachment(data: data, uniformTypeIdentifier: "public.png")
+            attachment.name = "fixed-header-\(name)"
+            attachment.lifetime = .keepAlways
+            add(attachment)
+            XCTAssertFalse(divider.isHidden)
+        }
+        var cancelled = false
+        overlay.onCancel = { cancelled = true }
+        let escape = try XCTUnwrap(NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [], timestamp: 1, windowNumber: overlay.windowNumber, context: nil, characters: "\u{1b}", charactersIgnoringModifiers: "\u{1b}", isARepeat: false, keyCode: 53))
+        divider.keyDown(with: escape)
+        XCTAssertTrue(cancelled, "调整分界线时 Esc 仍须可以取消截图")
     }
 
     private func makeOverlay(scale: Int = 1) throws -> SelectionOverlayWindow {

@@ -94,6 +94,11 @@ final class OutputDeliveryService {
         }
     }
 
+    func copyText(_ text: String, isCurrent: @MainActor () -> Bool = { true }) throws {
+        guard isCurrent() else { throw CancellationError() }
+        try publisher.publish(text: text)
+    }
+
     func copy(_ image: CGImage, startedAt: Date, isCurrent: @MainActor () -> Bool = { true }) async -> Bool {
         guard isCurrent(), !Task.isCancelled else { return false }
         do {

@@ -397,6 +397,122 @@ final class LongCaptureEngineTests: XCTestCase {
         engine.cancel()
     }
 
+    @MainActor
+    func testFixedHeaderAppearsOnceWithEveryBodyRowPreserved() async throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString, directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let page = patternedImage(width: 128, height: 1400)
+        let first = try fixedHeaderFrame(page: page, offset: 0)
+        let engine = LongCaptureEngine(sessionID: UUID(), workspaceRootURL: root, region: LongCaptureRegion(fixedHeaderHeight: 80))
+        _ = await engine.consume(first)
+        let initialized = await engine.consume(first)
+        XCTAssertEqual(initialized, .initialized(height: 600))
+        for offset in [74, 158, 280] {
+            let update = try await engine.consume(fixedHeaderFrame(page: page, offset: offset))
+            guard case let .appended(height, _) = update else { return XCTFail("正文滚动必须能够拼接") }
+            XCTAssertEqual(height, 600 + offset)
+        }
+        let result = try engine.finish()
+        let expected = try fixedHeaderFrame(page: page, offset: 0, viewportHeight: 880)
+        XCTAssertEqual(pixelBytes(result), pixelBytes(expected), "头部仅一次，正文不得漏行或重复")
+    }
+
+    @MainActor
+    func testFixedHeaderSupportsScrollingDuringStartup() async throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString, directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let page = patternedImage(width: 128, height: 1400)
+        let engine = LongCaptureEngine(sessionID: UUID(), workspaceRootURL: root, region: LongCaptureRegion(fixedHeaderHeight: 80))
+        _ = try await engine.consume(fixedHeaderFrame(page: page, offset: 0))
+        let update = try await engine.consume(fixedHeaderFrame(page: page, offset: 74))
+        XCTAssertEqual(update, .appended(height: 674, addedPixels: 74))
+        let result = try engine.finish()
+        XCTAssertEqual(pixelBytes(result), try pixelBytes(fixedHeaderFrame(page: page, offset: 0, viewportHeight: 674)))
+    }
+
+    @MainActor
+    func testHeaderChangesAloneDoNotCreateProgressOrReplaceTheRetainedHeader() async throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString, directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let page = patternedImage(width: 128, height: 1400)
+        let first = try fixedHeaderFrame(page: page, offset: 0)
+        var bytes = try XCTUnwrap(RGBAFrame(image: first)).bytes
+        for index in 0 ..< 128 * 80 * 4 {
+            bytes[index] = 255
+        }
+        let changed = makeImage(bytes: bytes, width: 128, height: 600)
+        let engine = LongCaptureEngine(sessionID: UUID(), workspaceRootURL: root, region: LongCaptureRegion(fixedHeaderHeight: 80))
+        _ = await engine.consume(first)
+        _ = await engine.consume(first)
+        let update = await engine.consume(changed)
+        XCTAssertEqual(update, .unchanged(height: 600))
+        XCTAssertEqual(try pixelBytes(engine.finish()), pixelBytes(first))
+    }
+
+    @MainActor
+    func testHeaderCannotProvideAlignmentEvidenceForRepeatedBodyContent() async throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString, directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: root) }
+        var time: TimeInterval = 0
+        let page = patternedImage(width: 128, height: 1400, rowPeriod: 4)
+        let first = try fixedHeaderFrame(page: page, offset: 0)
+        let shifted = try fixedHeaderFrame(page: page, offset: 6)
+        let engine = LongCaptureEngine(sessionID: UUID(), workspaceRootURL: root, region: LongCaptureRegion(fixedHeaderHeight: 80), now: { time })
+        _ = await engine.consume(first)
+        _ = await engine.consume(first)
+        for step in 0 ..< 4 {
+            time = Double(step)
+            let update = await engine.consume(shifted)
+            if step == 3 {
+                guard case .paused(_, height: 600) = update else { return XCTFail("重复正文必须保留已确认部分并暂停") }
+            }
+        }
+        XCTAssertEqual(try pixelBytes(engine.finish()), pixelBytes(first))
+    }
+
+    @MainActor
+    func testFixedHeaderStillAllowsRepairingTheBodyJoin() async throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString, directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let page = patternedImage(width: 128, height: 1400)
+        var bytes = try XCTUnwrap(RGBAFrame(image: fixedHeaderFrame(page: page, offset: 0))).bytes
+        bytes[(590 * 128 + 17) * 4] = 255
+        let first = makeImage(bytes: bytes, width: 128, height: 600)
+        let engine = LongCaptureEngine(sessionID: UUID(), workspaceRootURL: root, region: LongCaptureRegion(fixedHeaderHeight: 80))
+        _ = await engine.consume(first)
+        _ = await engine.consume(first)
+        let update = try await engine.consume(fixedHeaderFrame(page: page, offset: 74))
+        XCTAssertEqual(update, .appended(height: 674, addedPixels: 74))
+        let result = try engine.finish()
+        XCTAssertEqual(pixelBytes(result), try pixelBytes(fixedHeaderFrame(page: page, offset: 0, viewportHeight: 674)))
+    }
+
+    @MainActor
+    func testFixedHeaderRejectsInvalidGeometryAndOffsetsThatExceedBodyOverlap() async throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString, directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let page = patternedImage(width: 128, height: 1400)
+        let first = try fixedHeaderFrame(page: page, offset: 0, headerHeight: 400)
+        for headerHeight in [-1, 593, 600, 601] {
+            let engine = LongCaptureEngine(sessionID: UUID(), workspaceRootURL: root, region: LongCaptureRegion(fixedHeaderHeight: headerHeight))
+            let update = await engine.consume(first)
+            guard case .paused(_, height: 0) = update else { return XCTFail("非法头部高度不得写入首帧") }
+        }
+        let engine = LongCaptureEngine(sessionID: UUID(), workspaceRootURL: root, region: LongCaptureRegion(fixedHeaderHeight: 400), matcher: { _, _ in
+            .accepted(verticalDisplacement: 160, horizontalDrift: 0)
+        })
+        _ = await engine.consume(first)
+        let update = try await engine.consume(fixedHeaderFrame(page: page, offset: 160, headerHeight: 400))
+        guard case .paused(_, height: 0) = update else { return XCTFail("位移上限必须按正文高度计算") }
+    }
+
+    private func fixedHeaderFrame(page: CGImage, offset: Int, headerHeight: Int = 80, viewportHeight: Int = 600) throws -> CGImage {
+        let header = try XCTUnwrap(RGBAFrame(image: patternedImage(width: page.width, height: headerHeight)))
+        let body = try XCTUnwrap(page.cropping(topLeftRect: CGRect(x: 0, y: offset, width: page.width, height: viewportHeight - headerHeight)))
+        let bodyPixels = try XCTUnwrap(RGBAFrame(image: body))
+        return makeImage(bytes: header.bytes + bodyPixels.bytes, width: page.width, height: viewportHeight)
+    }
+
     private func patternedImage(width: Int, height: Int, rowPeriod: Int = 0) -> CGImage {
         var bytes = [UInt8](repeating: 255, count: width * height * 4)
         for y in 0 ..< height {

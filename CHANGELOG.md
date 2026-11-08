@@ -2,6 +2,15 @@
 
 应用版本来自 `CFBundleShortVersionString`，构建号来自 `CFBundleVersion`。
 
+## 未发布 / Unreleased
+
+- 新增本地文字识别：普通截图和长图编辑器提供“识别文字”，支持简体中文、英文和混排文字，可编辑结果、选择复制、全文复制、重试或返回截图。
+- macOS 27+ 的每次识别使用独立本机工作进程，避免连续会话复用失效的 Vision 模型状态；支持取消并回收进程，结束后清理私有临时图片。最低系统要求保持 macOS 13。
+- 长截图支持手动划定固定头部，仅在结果顶部保留一次，正文独立匹配并连续拼接；自动滚动以正文区域定位并计算步长。
+- 增加连续识别、等待后再次识别、取消、固定头部像素完整性及长图 OCR 组合回归，并核对双架构产物的最低系统版本。
+
+Adds local editable Chinese/English OCR for screenshots and scrolling results, isolated recognition sessions on macOS 27+, and a manually defined fixed header retained once while the scrolling body is stitched continuously. Available in current source builds; not included in the published 1.1.0 package.
+
 ## 1.1.0 — 2026-11-04（Build 28）
 
 - 增加文字水印模板，支持单点或平铺，以及截图和长图编辑时的临时调整。

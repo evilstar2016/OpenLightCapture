@@ -11,6 +11,7 @@ final class LongCaptureController {
     private let escapeShortcut: any CaptureCancellationShortcut
     private var display: CapturedDisplay?
     private var selectionPixelRect: CGRect?
+    private var region = LongCaptureRegion()
     private var targetWindowFrame: CGRect?
     private var automaticTarget: AutomaticScrollTarget?
     private var session: ActiveCaptureSession?
@@ -42,17 +43,19 @@ final class LongCaptureController {
         self.escapeShortcut = escapeShortcut
     }
 
-    func begin(screen: FrozenScreen, pixelRect: CGRect, session: ActiveCaptureSession) {
+    func begin(screen: FrozenScreen, pixelRect: CGRect, session: ActiveCaptureSession, region: LongCaptureRegion = LongCaptureRegion()) {
         guard controlPanel == nil else { return }
         display = CapturedDisplay(screen)
         selectionPixelRect = pixelRect.integral
+        self.region = region
         targetWindowFrame = screen.windows.first(where: { $0.id == session.targetWindowID })?.frame
         self.session = session
         cancelRequested = false
         let selectedScreenRect = screen.transform.globalScreenRect(fromPixelRect: pixelRect) ?? screen.screenFrame
+        let bodyScreenRect = region.bodyScreenRect(selectionPixelRect: pixelRect, transform: screen.transform)
         automaticTarget = screen.windows.first(where: {
             $0.id == session.targetWindowID && $0.processIdentifier == session.targetProcessID
-        }).flatMap { AutomaticScrollTarget(window: $0, selection: selectedScreenRect) }
+        }).flatMap { window in bodyScreenRect.flatMap { AutomaticScrollTarget(window: window, selection: $0) } }
         let panel = LongCaptureControlPanel(screenFrame: screen.screenFrame, selectedGlobalRect: selectedScreenRect)
         panel.onStartManual = { [weak self] in self?.queueStart(mode: .manual) }
         panel.onStartAutomatic = { [weak self] in self?.queueStart(mode: .automatic) }
@@ -128,7 +131,7 @@ final class LongCaptureController {
 
         mode = selectedMode
         self.session = captureFlowController.sessions.activeSession ?? session
-        engine = LongCaptureEngine(sessionID: session.id)
+        engine = LongCaptureEngine(sessionID: session.id, region: region)
         partialReason = nil
         activityClock.start()
         startupWatchdog.beginAttempt(activeElapsed: activeElapsed)
@@ -292,9 +295,8 @@ final class LongCaptureController {
             Task { @MainActor in await pause(reason: L10n.longAutoTargetChanged, canResume: engineHeight > 0) }
             return
         }
-        let scale = CGFloat(display.pixelHeight) / max(display.screenFrame.height, 1)
-        let logicalHeight = rect.height / max(scale, 0.1)
-        guard let pixels = AutomaticScrollEvent.stepPixels(forViewportHeight: logicalHeight),
+        guard let bodyScreenRect = region.bodyScreenRect(selectionPixelRect: rect, transform: display.transform),
+              let pixels = AutomaticScrollEvent.stepPixels(forViewportHeight: bodyScreenRect.height),
               let event = AutomaticScrollEvent.make(
                   pixels: pixels, target: automaticTarget,
                   primaryScreenHeight: NSScreen.screens.first?.frame.maxY ?? 0
@@ -569,6 +571,7 @@ final class LongCaptureController {
         hideRegionHighlight()
         display = nil
         selectionPixelRect = nil
+        region = LongCaptureRegion()
         targetWindowFrame = nil
         automaticTarget = nil
         session = nil

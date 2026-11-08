@@ -18,6 +18,8 @@ swiftc -O -swift-version 6 -target "$(uname -m)-apple-macos13.0" -parse-as-libra
     LightCapture/Recording/GIFEncoder.swift \
     LightCapture/Output/EncodedOutput.swift \
     LightCapture/Capture/CGImageCoordinates.swift \
+    LightCapture/Capture/DisplayTransform.swift \
+    LightCapture/Capture/LongCaptureRegion.swift \
     LightCapture/Annotation/AnnotationDocument.swift \
     LightCapture/Annotation/AnnotationRenderer.swift \
     LightCapture/Output/FilenamePolicy.swift \

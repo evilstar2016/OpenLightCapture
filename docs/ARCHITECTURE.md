@@ -1,6 +1,6 @@
 # 架构概览 / Architecture
 
-应用为一个本地 macOS 进程：AppKit 承载菜单、浮层和编辑器，SwiftUI 承载设置与权限帮助。当前没有后端、数据库、任务队列或第三方运行时。
+应用主进程使用 AppKit 承载菜单、浮层和编辑器，SwiftUI 承载设置与权限帮助。macOS 27+ 的 OCR 每次会话使用独立本机工作进程，识别结束后退出。当前没有后端、数据库、任务队列或第三方运行时。
 
 ```mermaid
 flowchart TD
@@ -21,6 +21,10 @@ flowchart TD
     G --> H[OverlapMatcher and TileStore]
     H --> I[Annotation editor]
     I --> E
+    D --> OCR[OCR session and editable text]
+    I --> OCR
+    OCR --> Vision[Serial local Vision recognition]
+    OCR --> TextClipboard[Explicit plain-text copy]
     E --> J[PNG or GIF / AssetStore]
     J --> K[Clipboard PNG or GIF and file URL]
     E --> R[MP4 file save / clipboard unchanged]
@@ -36,6 +40,7 @@ flowchart TD
 | [Watermark](../LightCapture/Watermark) | 本地文字模板、默认选择、会话副本、共享 CoreText 布局与绘制、管理器和本次调整弹层 |
 | [Stitching](../LightCapture/Stitching) | 像素对齐、唯一性/可靠性检查、增量图块与上限 |
 | [Recording](../LightCapture/Recording) | 录制参数；GIF 时间轴、原始素材和流式封装；MP4 实时编码与校验 |
+| [OCR](../LightCapture/OCR) | 本地中英文识别、分段去重、取消与重试、独立工作进程和可编辑结果 |
 | [Output](../LightCapture/Output) | PNG/GIF 资产与剪贴板、GIF/视频预览、默认命名与文件另存 |
 | [Localization](../LightCapture/Localization) | 语言清单、偏好、生效协调、线程安全上下文和文案入口 |
 
@@ -57,9 +62,13 @@ UI 与会话状态由 MainActor 管理。异步工作回到 UI 前核对会话 I
 
 具体实现以源码为准。编号设计书记录的是各次设计基线和决策，不意味着每个历史行号或所有候选技术都仍适用于当前代码。
 
+固定头部使用像素坐标描述，仅在首帧输出中保留。后续图像匹配只比较正文，追加正文底部的新行；固定部分变化不作为滚动进度或匹配证据。自动滚动使用正文屏幕矩形定位和计算步长。
+
+OCR 接收不可变渲染快照，按完整宽度分段并修复边界、去重，取消与会话 generation 防止旧结果覆盖新会话。macOS 13–26 使用 Vision revision 3；macOS 27+ 在独立进程内使用 revision 2。工作进程在 AppKit、快捷键、单实例锁和剪贴板初始化前进入识别路径。父进程串行管理私有临时 PNG、结果管道、取消及进程回收。详见[隐私说明](../PRIVACY.md)。
+
 ## English summary
 
-This is one native, local macOS process. AppKit owns the capture overlay/editor and SwiftUI owns settings/help. `CaptureFlowController` coordinates one active session; IDs and generations reject stale asynchronous work. Capture, editing, and publishing are separate stages.
+The native macOS main process launches one local OCR worker per recognition session on macOS 27+, avoiding shared stale Vision state between sessions. AppKit owns the capture overlay/editor and SwiftUI owns settings/help. `CaptureFlowController` coordinates one active session; IDs and generations reject stale asynchronous work. Capture, editing, and publishing are separate stages.
 
 Regular captures freeze display images for selection before cropping. Scrolling uses a bounded frame path, pixel matching, and temporary tiles. A shared RecordingController coordinates GIF/video attempts. GIF keeps timestamps and bounded raw frames, uses native per-frame ImageIO encoding with a streamed GIF89a container, and previews the resulting file. Silent video streams into AVAssetWriter H.264/MP4 with explicit sample durations for static segments and tails, then previews through AVPlayerView. MP4 saving copies to a sibling staging file before replacement and leaves the clipboard unchanged. Image output publishes PNG or GIF data, a file URL, and an owned asset ID. Only owned temporary assets are eligible for cleanup.
 

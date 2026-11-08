@@ -56,7 +56,7 @@ final class WatermarkIntegrationTests: XCTestCase {
         let long = try button("capture.action.rectangle.expand.vertical", in: root)
         XCTAssertTrue(long.isEnabled)
         var requested = false
-        overlay.onLongCapture = { rect, _ in
+        overlay.onLongCapture = { rect, _, _ in
             requested = true
             XCTAssertEqual(rect.size, CGSize(width: 500, height: 300))
             XCTAssertEqual(overlay.watermarkSelection, selection)

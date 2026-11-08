@@ -10,7 +10,11 @@ final class SelectionOverlayWindow: NSPanel {
 
     var onCancel: (() -> Void)?
     var onOutput: SelectionOutputHandler?
-    var onLongCapture: ((CGRect, CapturedWindow?) -> Void)?
+    var onLongCapture: ((CGRect, CapturedWindow?, LongCaptureRegion) -> Void)?
+    var onRecognizeText: ((AnnotationRenderSnapshot) -> Void)? {
+        didSet { rootView.ocrAvailable = onRecognizeText != nil }
+    }
+
     var onGIFCapture: ((CGRect, CapturedWindow?) -> Void)?
     var onVideoCapture: ((CGRect, CapturedWindow?) -> Void)?
 
@@ -43,9 +47,10 @@ final class SelectionOverlayWindow: NSPanel {
             }
             return succeeded
         }
-        rootView.onLongCapture = { [weak self] rect, window in
-            self?.onLongCapture?(rect, window)
+        rootView.onLongCapture = { [weak self] rect, window, region in
+            self?.onLongCapture?(rect, window, region)
         }
+        rootView.onRecognizeText = { [weak self] snapshot in self?.onRecognizeText?(snapshot) }
         rootView.onGIFCapture = { [weak self] rect, window in self?.onGIFCapture?(rect, window) }
         rootView.onVideoCapture = { [weak self] rect, window in self?.onVideoCapture?(rect, window) }
         contentView = rootView
@@ -72,6 +77,14 @@ final class SelectionOverlayWindow: NSPanel {
         makeKeyAndOrderFront(nil)
         makeFirstResponder(rootView.keyboardResponder)
     }
+
+    func isCurrentRevision(_ revision: UInt64) -> Bool {
+        rootView.isCurrentRevision(revision)
+    }
+
+    func setOCRActive(_ active: Bool) {
+        rootView.setOCRActive(active)
+    }
 }
 
 @MainActor
@@ -97,10 +110,14 @@ private final class SelectionOverlayRootView: NSView {
     private var undoButton: NSButton!
     private var redoButton: NSButton!
     private var longButton: NSButton!
+    private var headerButton: NSButton!
+    private let headerView = LongCaptureHeaderView(frame: .zero)
+    private var keepsHeader = false
     private var gifButton: NSButton!
     private var videoButton: NSButton!
     private var saveButton: NSButton!
     private var completeButton: NSButton!
+    private var ocrButton: NSButton!
     private var annotationCanvas: AnnotationCanvasView?
     private var document: AnnotationDocument?
     private var currentTool: AnnotationTool = .crop
@@ -110,6 +127,10 @@ private final class SelectionOverlayRootView: NSView {
     private var isFinishing = false
     private var isDismissed = false
     private var renderTask: Task<Void, Never>?
+    private var ocrActive = false
+    var ocrAvailable = false {
+        didSet { updateToolState() }
+    }
 
     var canResume: Bool {
         !isDismissed
@@ -117,7 +138,8 @@ private final class SelectionOverlayRootView: NSView {
 
     var onCancel: (() -> Void)?
     var onOutput: SelectionOutputHandler?
-    var onLongCapture: ((CGRect, CapturedWindow?) -> Void)?
+    var onLongCapture: ((CGRect, CapturedWindow?, LongCaptureRegion) -> Void)?
+    var onRecognizeText: ((AnnotationRenderSnapshot) -> Void)?
     var onGIFCapture: ((CGRect, CapturedWindow?) -> Void)?
     var onVideoCapture: ((CGRect, CapturedWindow?) -> Void)?
 
@@ -139,6 +161,9 @@ private final class SelectionOverlayRootView: NSView {
         super.init(frame: CGRect(origin: .zero, size: screen.screenFrame.size))
         wantsLayer = true
         addSubview(canvas)
+        headerView.isHidden = true
+        headerView.onUnhandledKeyDown = { [weak self] event in self?.canvas.keyDown(with: event) }
+        addSubview(headerView)
         configureToolbar()
         configurePalette()
         sizeLabel.font = .monospacedDigitSystemFont(ofSize: 11, weight: .medium)
@@ -181,6 +206,16 @@ private final class SelectionOverlayRootView: NSView {
         textInput = nil
     }
 
+    func isCurrentRevision(_ revision: UInt64) -> Bool {
+        !isDismissed && document?.revision == revision
+    }
+
+    func setOCRActive(_ active: Bool) {
+        if active { watermarkPopover.close() }
+        ocrActive = active
+        updateToolState()
+    }
+
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
         updateAppearance()
@@ -196,6 +231,8 @@ private final class SelectionOverlayRootView: NSView {
         canvas.frame = bounds
         if let document, let selection = localRect(for: document.cropRect), !canvas.isDraggingSelection {
             annotationCanvas?.frame = selection
+            headerView.frame = selection
+            headerView.setHeaderHeight(headerView.headerHeight)
         }
         placeControls()
     }
@@ -221,6 +258,10 @@ private final class SelectionOverlayRootView: NSView {
         toolbar.addArrangedSubview(watermarkButton)
         longButton = iconButton("rectangle.expand.vertical", title: initialMode == .long ? L10n.actionStartLong : L10n.longTitle, action: #selector(startLongCapture))
         toolbar.addArrangedSubview(longButton)
+        headerButton = iconButton("rectangle.topthird.inset.filled", title: L10n.longKeepHeader, action: #selector(toggleFixedHeader))
+        headerButton.identifier = NSUserInterfaceItemIdentifier("capture.long.keepHeader")
+        headerButton.setButtonType(.toggle)
+        toolbar.addArrangedSubview(headerButton)
         gifButton = iconButton("record.circle", title: L10n.gifTitle, action: #selector(startGIFCapture))
         gifButton.identifier = NSUserInterfaceItemIdentifier("capture.selection.gif")
         toolbar.addArrangedSubview(gifButton)
@@ -233,6 +274,9 @@ private final class SelectionOverlayRootView: NSView {
         toolbar.addArrangedSubview(undoButton)
         toolbar.addArrangedSubview(redoButton)
         toolbar.addArrangedSubview(separator())
+        ocrButton = iconButton("text.viewfinder", title: L10n.ocrTitle, action: #selector(recognizeText))
+        ocrButton.identifier = NSUserInterfaceItemIdentifier("capture.action.ocr")
+        toolbar.addArrangedSubview(ocrButton)
         saveButton = iconButton("square.and.arrow.down", title: L10n.actionSave, action: #selector(saveSelection))
         toolbar.addArrangedSubview(saveButton)
         toolbar.addArrangedSubview(iconButton("xmark", title: L10n.actionCancel, action: #selector(cancelSelection)))
@@ -243,7 +287,7 @@ private final class SelectionOverlayRootView: NSView {
             for button in toolButtons {
                 button.isHidden = true
             }
-            for button in [watermarkButton, longButton, undoButton, redoButton, saveButton, completeButton] {
+            for button in [watermarkButton, longButton, headerButton, undoButton, redoButton, ocrButton, saveButton, completeButton] {
                 button?.isHidden = true
             }
         }
@@ -266,6 +310,8 @@ private final class SelectionOverlayRootView: NSView {
         guard let rect, let global = screen.transform.globalScreenRect(fromLocalTopLeftRect: rect),
               let pixels = screen.transform.pixelRect(fromGlobalScreenRect: global)
         else {
+            keepsHeader = false
+            headerView.isHidden = true
             annotationCanvas?.isHidden = true
             toolbar.isHidden = true
             palette.isHidden = true
@@ -292,6 +338,7 @@ private final class SelectionOverlayRootView: NSView {
             annotationCanvas?.isHidden = true
             toolbar.isHidden = true
             palette.isHidden = true
+            headerView.isHidden = true
         } else {
             if let document {
                 document.setCropRect(pixels)
@@ -326,6 +373,9 @@ private final class SelectionOverlayRootView: NSView {
         annotationCanvas?.frame = rect
         annotationCanvas?.isHidden = false
         annotationCanvas?.needsDisplay = true
+        headerView.frame = rect
+        headerView.setHeaderHeight(headerView.headerHeight)
+        if !LongCaptureHeaderView.canConfigure(in: rect.size) { keepsHeader = false }
         sizeLabel.stringValue = "\(Int(document.cropRect.width)) × \(Int(document.cropRect.height)) px"
         toolbar.isHidden = false
         badge.isHidden = false
@@ -344,7 +394,7 @@ private final class SelectionOverlayRootView: NSView {
     }
 
     private func updateToolState() {
-        let enabled = document != nil && !isFinishing && !isDismissed
+        let enabled = document != nil && !isFinishing && !isDismissed && !ocrActive
         if let watermarkButton {
             AnnotationToolbarStyle.update(watermarkButton, selected: document?.watermark != nil, enabled: enabled && !initialMode.isRecording)
             watermarkButton.toolTip = L10n.watermarkTitle + ": " + (document?.watermark.map { $0.sourceName ?? L10n.watermarkCustom } ?? L10n.watermarkNone)
@@ -357,10 +407,15 @@ private final class SelectionOverlayRootView: NSView {
         annotationCanvas?.tool = currentTool == .crop ? .select : currentTool
         annotationCanvas?.passesMouseEventsThrough = currentTool == .crop
         annotationCanvas?.isInteractionEnabled = enabled
-        canvas.isInteractionEnabled = !isFinishing
+        canvas.isInteractionEnabled = !isFinishing && !ocrActive
         let hasMarks = document?.annotations.isEmpty == false
         AnnotationToolbarStyle.update(longButton, selected: false, enabled: enabled && !hasMarks)
         longButton?.toolTip = hasMarks ? L10n.selectionLongAfterMarks : L10n.longTitle
+        let canSetHeader = enabled && !initialMode.isRecording && !hasMarks && canvas.selectionRect.map { LongCaptureHeaderView.canConfigure(in: $0.size) } == true
+        if let headerButton {
+            AnnotationToolbarStyle.update(headerButton, selected: keepsHeader, enabled: canSetHeader)
+        }
+        headerView.isHidden = !canSetHeader || !keepsHeader || currentTool != .crop || canvas.isDraggingSelection
         let hasRecordingEdits = hasMarks || document?.watermark != nil
         // Recording drops the screenshot editing layers, so the buttons stay
         // clickable and offer to clear the watermark and marks first.
@@ -370,6 +425,9 @@ private final class SelectionOverlayRootView: NSView {
         videoButton?.toolTip = hasRecordingEdits ? L10n.recordingClearsEdits : L10n.videoTitle
         saveButton?.isEnabled = enabled
         completeButton?.isEnabled = enabled
+        if let ocrButton {
+            AnnotationToolbarStyle.update(ocrButton, selected: false, enabled: enabled && ocrAvailable && !initialMode.isRecording)
+        }
         undoButton?.isEnabled = enabled && document?.canUndo == true
         redoButton?.isEnabled = enabled && document?.canRedo == true
         palette.update(for: currentTool, enabled: enabled)
@@ -447,11 +505,31 @@ private final class SelectionOverlayRootView: NSView {
     }
 
     @objc private func startLongCapture() {
-        guard !isFinishing, !isDismissed, document?.annotations.isEmpty == true, let rect = canvas.selectionRect else { return }
+        guard !isFinishing, !isDismissed, !ocrActive, document?.annotations.isEmpty == true, let rect = canvas.selectionRect else { return }
+        var headerPixels = 0
+        if keepsHeader {
+            let headerRect = CGRect(x: rect.minX, y: rect.minY, width: rect.width, height: headerView.headerHeight)
+            guard let globalHeader = screen.transform.globalScreenRect(fromLocalTopLeftRect: headerRect),
+                  let pixels = screen.transform.pixelRect(fromGlobalScreenRect: globalHeader),
+                  let cropRect = document?.cropRect
+            else { return }
+            headerPixels = Int(pixels.maxY - cropRect.minY)
+        }
         isFinishing = true
-        canvas.isInteractionEnabled = false
+        updateToolState()
         watermarkPopover.close()
-        onLongCapture?(rect, canvas.selectedWindow)
+        onLongCapture?(rect, canvas.selectedWindow, LongCaptureRegion(fixedHeaderHeight: headerPixels))
+    }
+
+    @objc private func toggleFixedHeader() {
+        guard headerButton.isEnabled else { return }
+        finishTextEditing(commit: true)
+        keepsHeader.toggle()
+        currentTool = .crop
+        if keepsHeader { headerView.setHeaderHeight(64) }
+        updateToolState()
+        window?.makeFirstResponder(keepsHeader ? headerView : keyboardResponder)
+        needsLayout = true
     }
 
     @objc private func startGIFCapture() {
@@ -463,7 +541,7 @@ private final class SelectionOverlayRootView: NSView {
     }
 
     private func recordSelection(mode: CaptureMode) {
-        guard !isFinishing, !isDismissed, let rect = canvas.selectionRect else { return }
+        guard !isFinishing, !isDismissed, !ocrActive, let rect = canvas.selectionRect else { return }
         finishTextEditing(commit: true)
         watermarkPopover.close()
         guard let document, document.annotations.isEmpty, document.watermark == nil else {
@@ -503,6 +581,16 @@ private final class SelectionOverlayRootView: NSView {
         synchronizeDocument()
     }
 
+    @objc private func recognizeText() {
+        guard !isFinishing, !isDismissed, !ocrActive, !initialMode.isRecording, ocrAvailable, let document else { return }
+        guard textInput?.hasMarkedText() != true else {
+            window?.makeFirstResponder(textInput)
+            return
+        }
+        finishTextEditing(commit: true)
+        onRecognizeText?(document.renderSnapshot())
+    }
+
     @objc private func completeSelection() {
         publish(save: false)
     }
@@ -518,6 +606,7 @@ private final class SelectionOverlayRootView: NSView {
     }
 
     private func publish(save: Bool) {
+        guard !ocrActive else { return }
         if initialMode == .long { startLongCapture(); return }
         if initialMode == .gif { startGIFCapture(); return }
         if initialMode == .video { startVideoCapture(); return }

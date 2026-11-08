@@ -16,7 +16,8 @@ Follow the author [@EverSeenU on X](https://x.com/EverSeenU) for project updates
 |---|---|
 | Area, window, and desktop capture | The default shortcut is `⇧⌘A`. Press `Space` to switch selection modes. |
 | Inline annotations | Rectangle, ellipse, arrow, brush, text, mosaic; select and drag any annotation, style controls, undo and redo |
-| Scrolling screenshots | Manual and automatic scrolling, pause/resume, and explicit partial results |
+| Scrolling screenshots | Manual and automatic scrolling, pause/resume, and explicit partial results; source builds can retain a manually defined fixed header once |
+| Local OCR (source builds) | Recognize Chinese/English from screenshots and scrolling results, edit text, copy a selection or all text, retry, or return to the image |
 | Text watermark templates | Local presets with single or tiled placement and per-capture adjustments |
 | GIF recording | Record a region, preview, record again, copy or save |
 | Silent video recording | Record a region, preview, record again, and save MP4/H.264 |
@@ -29,7 +30,7 @@ Images and videos are processed locally. The app has no network requests, teleme
 
 ## Status and compatibility
 
-The current version is **1.1.0 (build 28)**.
+The current published version is **1.1.0 (build 28)**. Local OCR and fixed-header scrolling are available on `main` and require a source build; they are not included in that published package.
 
 - Requires macOS 13 (Ventura) or later.
 - Builds for Apple Silicon (`arm64`) and Intel (`x86_64`). Intel hardware and older macOS versions have incomplete hands-on coverage.

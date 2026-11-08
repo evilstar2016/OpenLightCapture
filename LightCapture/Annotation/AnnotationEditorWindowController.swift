@@ -26,6 +26,15 @@ final class AnnotationEditorWindowController: NSWindowController, NSWindowDelega
     private var changeSourceButton: NSButton!
     private var saveButton: NSButton!
     private var completeButton: NSButton!
+    private var ocrButton: NSButton!
+    var onRecognizeText: ((AnnotationRenderSnapshot) -> Void)? {
+        didSet {
+            if let ocrButton {
+                AnnotationToolbarStyle.update(ocrButton, selected: false, enabled: !isFinishing && !isDismissed && onRecognizeText != nil)
+            }
+        }
+    }
+
     private var textView: AnnotationInputTextView?
     private var editingPixelRect: CGRect?
     private var editingAnnotation: Annotation?
@@ -93,6 +102,22 @@ final class AnnotationEditorWindowController: NSWindowController, NSWindowDelega
 
     func dismissForCaptureSourceChange() {
         dismissAfterCompletion()
+    }
+
+    func isCurrentRevision(_ revision: UInt64) -> Bool {
+        !isDismissed && annotationDocument.revision == revision
+    }
+
+    func setOCRActive(_ active: Bool) {
+        if active { watermarkPopover.close() }
+        setFinishing(active)
+    }
+
+    func resumeAfterOCR() {
+        guard !isDismissed else { return }
+        setFinishing(false)
+        window?.makeKeyAndOrderFront(nil)
+        window?.makeFirstResponder(canvas)
     }
 
     func dismissAfterCompletion() {
@@ -247,6 +272,10 @@ final class AnnotationEditorWindowController: NSWindowController, NSWindowDelega
         toolbar.addArrangedSubview(undoButton)
         toolbar.addArrangedSubview(redoButton)
         toolbar.addArrangedSubview(AnnotationToolbarStyle.separator())
+        ocrButton = iconButton("text.viewfinder", title: L10n.ocrTitle, action: #selector(recognizeText))
+        ocrButton.identifier = NSUserInterfaceItemIdentifier("capture.action.ocr")
+        AnnotationToolbarStyle.update(ocrButton, selected: false, enabled: onRecognizeText != nil)
+        toolbar.addArrangedSubview(ocrButton)
         toolbar.addArrangedSubview(saveButton)
         toolbar.addArrangedSubview(cancelButton)
         toolbar.addArrangedSubview(completeButton)
@@ -367,6 +396,16 @@ final class AnnotationEditorWindowController: NSWindowController, NSWindowDelega
         }
     }
 
+    @objc private func recognizeText() {
+        guard !isFinishing, !isDismissed, let onRecognizeText else { return }
+        guard textView?.hasMarkedText() != true else {
+            window?.makeFirstResponder(textView)
+            return
+        }
+        finishTextEditing(commit: true)
+        onRecognizeText(annotationDocument.renderSnapshot())
+    }
+
     @objc private func save() {
         guard !isFinishing, !isDismissed, let onSave else { return }
         finishTextEditing(commit: true)
@@ -468,6 +507,7 @@ final class AnnotationEditorWindowController: NSWindowController, NSWindowDelega
         if value { watermarkPopover.close() }
         isFinishing = value
         completeButton.isEnabled = !value
+        AnnotationToolbarStyle.update(ocrButton, selected: false, enabled: !value && onRecognizeText != nil)
         saveButton.isEnabled = !value && onSave != nil
         changeSourceButton.isEnabled = !value && onChangeCaptureSource != nil
         toolButtons.forEach { $0.isEnabled = !value }

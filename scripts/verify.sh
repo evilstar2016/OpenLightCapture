@@ -44,5 +44,6 @@ run_check architecture-arm64 lipo "$verification_app/Contents/MacOS/OpenLightCap
 run_check architecture-x86_64 lipo "$verification_app/Contents/MacOS/OpenLightCapture" -verify_arch x86_64
 run_check signature codesign --verify --deep --strict "$verification_app"
 run_check metadata plutil -lint "$verification_app/Contents/Info.plist"
+run_check platform python3 scripts/verify-platform.py --app "$verification_app"
 run_check localization-package python3 scripts/verify-localizations.py --app "$verification_app"
 printf 'Verification passed. Results: %s\nRelease app: %s\n' "$verification_output" "$verification_app"

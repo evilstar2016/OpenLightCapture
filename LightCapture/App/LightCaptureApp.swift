@@ -4,6 +4,7 @@ import AppKit
 enum LightCaptureApp {
     @MainActor
     static func main() {
+        OCRWorkerProcess.runIfRequested()
         let application = NSApplication.shared
         let delegate = AppDelegate()
         application.delegate = delegate

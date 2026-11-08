@@ -2,6 +2,62 @@ import Foundation
 
 /// Stable semantic keys. Translations are maintained in Localizable.xcstrings.
 enum L10n {
+    static var ocrTitle: String {
+        LocalizationContext.current.string("ocr.title", defaultValue: "Recognize Text")
+    }
+
+    static var ocrRecognizing: String {
+        LocalizationContext.current.string("ocr.recognizing", defaultValue: "Recognizing text… You can cancel and return to the screenshot.")
+    }
+
+    static var ocrResultHelp: String {
+        LocalizationContext.current.string("ocr.resultHelp", defaultValue: "Edit the result, then select text and press ⌘C, or copy all text and finish.")
+    }
+
+    static var ocrLocalHelp: String {
+        LocalizationContext.current.string("ocr.localHelp", defaultValue: "Recognition runs locally. The clipboard changes only when you copy text.")
+    }
+
+    static var ocrEmpty: String {
+        LocalizationContext.current.string("ocr.empty", defaultValue: "No text recognized. Return to adjust the screenshot or try again.")
+    }
+
+    static var ocrFailed: String {
+        LocalizationContext.current.string("ocr.failed", defaultValue: "Unable to recognize text. Return to the screenshot or try again.")
+    }
+
+    static var ocrUnsupportedLanguages: String {
+        LocalizationContext.current.string("ocr.unsupportedLanguages", defaultValue: "Chinese and English text recognition is unavailable on this Mac.")
+    }
+
+    static var ocrImageTooLarge: String {
+        LocalizationContext.current.string("ocr.imageTooLarge", defaultValue: "This image is too large to recognize. Return and select a smaller area.")
+    }
+
+    static var ocrIncompleteBoundary: String {
+        LocalizationContext.current.string("ocr.incompleteBoundary", defaultValue: "Unable to recognize all of this image. Return and select a smaller area, then try again.")
+    }
+
+    static var ocrReturn: String {
+        LocalizationContext.current.string("ocr.return", defaultValue: "Return to Screenshot")
+    }
+
+    static var ocrCancelAndReturn: String {
+        LocalizationContext.current.string("ocr.cancelAndReturn", defaultValue: "Cancel and Return")
+    }
+
+    static var ocrRetry: String {
+        LocalizationContext.current.string("ocr.retry", defaultValue: "Try Again")
+    }
+
+    static var ocrCopyAndFinish: String {
+        LocalizationContext.current.string("ocr.copyAndFinish", defaultValue: "Copy Text and Finish")
+    }
+
+    static var ocrCopied: String {
+        LocalizationContext.current.string("ocr.copied", defaultValue: "Text copied")
+    }
+
     static var toolSelect: String {
         LocalizationContext.current.string("tool.select", defaultValue: "Select")
     }
@@ -519,7 +575,19 @@ enum L10n {
     }
 
     static var longSelectionHelp: String {
-        LocalizationContext.current.string("long.selectionHelp", defaultValue: "Manual mode needs Screen Recording; automatic mode also needs control permission. Restart after allowing access. Exclude fixed headers, footers, and scrollbars.")
+        LocalizationContext.current.string("long.selectionHelp", defaultValue: "Manual mode needs Screen Recording; automatic mode also needs control permission. Restart after allowing access. Mark fixed headers in the selection toolbar before starting; exclude footers and scrollbars.")
+    }
+
+    static var longKeepHeader: String {
+        LocalizationContext.current.string("long.keepHeader", defaultValue: "Keep Fixed Header Once")
+    }
+
+    static var longHeaderHelp: String {
+        LocalizationContext.current.string("long.headerHelp", defaultValue: "Drag the divider below the fixed header, including its shadow. The header is kept once. Use Up/Down arrows to adjust. Supports headers that stay fixed at the same height throughout capture.")
+    }
+
+    static var longHeaderBoundary: String {
+        LocalizationContext.current.string("long.headerBoundary", defaultValue: "Header kept once · Drag below header and shadow")
     }
 
     static func longRunning(_ p0: String, _ p1: Int, _ p2: Int, in context: LocalizationContext = .current) -> String {

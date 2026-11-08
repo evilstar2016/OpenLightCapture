@@ -3,9 +3,13 @@ import Foundation
 
 enum ClipboardPublishError: LocalizedError {
     case pasteboardRejected
+    case emptyText
 
     var errorDescription: String? {
-        L10n.errorClipboardRejected
+        switch self {
+        case .pasteboardRejected: L10n.errorClipboardRejected
+        case .emptyText: L10n.ocrEmpty
+        }
     }
 }
 
@@ -17,6 +21,12 @@ final class ClipboardPublisher {
     init(assetStore: AssetStore, pasteboard: NSPasteboard = .general) {
         self.assetStore = assetStore
         self.pasteboard = pasteboard
+    }
+
+    func publish(text: String) throws {
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw ClipboardPublishError.emptyText }
+        pasteboard.clearContents()
+        guard pasteboard.setString(text, forType: .string) else { throw ClipboardPublishError.pasteboardRejected }
     }
 
     func publish(pngData: Data, startedAt: Date) throws -> PreparedAsset {

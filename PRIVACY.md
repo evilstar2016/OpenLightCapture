@@ -1,6 +1,6 @@
 # 隐私与本地数据 / Privacy and local data
 
-本文描述 OpenLightCapture 1.1.0 的数据处理方式。
+本文描述 OpenLightCapture 当前源码的数据处理方式。本地文字识别功能尚未包含在 1.1.0 发行包中。
 
 ## 中文
 
@@ -14,11 +14,17 @@
 
 自动滚动仅在用户选择自动模式后使用控制权限，向所选目标发送滚动。采集流不启用音频；应用不请求麦克风、摄像头或全盘访问。
 
+### 本地文字识别
+
+OCR 只在用户点击“识别文字”后运行，使用当前裁剪、标注和水印合成后的图片。识别由 Apple Vision 在本机完成，不上传图片或文字、不新增文字历史。预览、编辑、重试与返回截图不修改剪贴板；选择复制或全文复制时写入纯文本，替换之前的剪贴板内容，不建立图片资产。
+
+macOS 27+ 每次 OCR 会话使用同一应用可执行文件的独立工作进程。输入图片写入系统临时目录中的 `OpenLightCaptureOCR-<pid>-<random-id>/input.png`，目录权限为 0700，文件权限为 0600；结果通过本机管道返回。正常成功、失败或取消后回收工作进程并删除临时目录。强制结束或崩溃可能留下临时文件，应用私有权限不等同于额外加密或安全擦除。无需新增系统权限。
+
 ### 网络与第三方
 
 当前应用没有账号、云上传、分析 SDK、遥测或更新检查的网络实现。系统授权页面和 Finder 操作由 macOS 处理。设置页的 X 账号链接仅在用户点击后调用默认浏览器打开 `https://x.com/EverSeenU`；浏览器会连接该网站并适用其隐私政策，应用不预加载账号内容。
 
-复制后，系统通用剪贴板、剪贴板管理器和目标应用可能按各自设置保存、同步或上传图片；这不由本项目控制。本说明也不涵盖 GitHub 上的 Issue、附件或下载服务。
+复制后，系统通用剪贴板、剪贴板管理器和目标应用可能按各自设置保存、同步或上传图片或文字；这不由本项目控制。本说明也不涵盖 GitHub 上的 Issue、附件或下载服务。
 
 ### 本地文件与保留
 
@@ -71,6 +77,12 @@
 Capture starts after a user action. Regular screenshots temporarily read available display images into memory for area/window selection, then export the selected region. The app can therefore see more pixels during selection than the final output contains.
 
 An active scrolling session receives the configured capture area and stitches it locally. Window/process identifiers, geometry, and foreground-app state support selection, target binding, and focus restoration. There is no idle screen-capture stream. Automatic scrolling uses control permission only after the user selects that mode. Audio capture is disabled; microphone, camera, and Full Disk Access are not requested.
+
+### Local text recognition
+
+OCR runs only after Recognize Text is selected, using the rendered crop, annotations, and watermark. Apple Vision recognizes text locally. The app does not upload images/text or create text history. Recognition and editing leave the clipboard unchanged; copying writes plain text and replaces its previous contents without creating an image asset.
+
+On macOS 27+, each session uses a separate instance of the app executable. A PNG input is placed in `OpenLightCaptureOCR-<pid>-<random-id>/input.png` under the system temporary directory, with mode 0700 for the directory and 0600 for the file. Results return through a local pipe. Normal completion, failure, and cancellation remove the input and reap the worker. A crash or forced termination can leave temporary files; private permissions do not provide extra encryption or secure erasure. No new system permission is required.
 
 ### Network and local storage
 

@@ -72,6 +72,23 @@ The full script regenerates the project, lints Swift, runs tests/coverage, build
 
 不要把“测试页存在”“能编译”或“只核对 OCR 行号”写成完整实机验收；记录实际使用的样本、操作、输出和未覆盖的环境。
 
+## OCR 与固定头部验证 / OCR and fixed-header checks
+
+`OCRTests` 使用合成中英文图片，覆盖长图分段底部、裁剪标注、水印、连续大小选区及两次间隔 25 秒的后续识别，并验证固定头部拼接后只识别一份头部、正文各段均保留。取消用例检查子进程登记前后发生的取消与回收；正常识别检查临时目录清理。
+
+macOS 13–26 的 OCR 使用 Vision revision 3；macOS 27+ 使用独立工作进程内的 revision 2，避免常驻进程持续出现系统 E5RT 模型错误。通过同一可执行文件的 `--ocr-worker` 路径进入工作模式，不初始化 AppKit、热键或剪贴板。工作目录和文件权限、保留边界见[隐私说明](../PRIVACY.md)。
+
+除完整 Debug 验证外，OCR 还需验证优化构建：
+
+```sh
+xcodebuild -project OpenLightCapture.xcodeproj -scheme OpenLightCapture \
+  -configuration Release -destination 'platform=macOS' \
+  -derivedDataPath build/OCRReleaseTests ENABLE_TESTABILITY=YES \
+  -only-testing:LightCaptureTests/OCRTests test
+```
+
+`LongCaptureEngineTests` 逐像素比较固定头部输出与正文，覆盖启动时滚动、固定部分变化、歧义正文和错误高度。`InlineAnnotationTests` 检查边界拖动、Retina 换算和重新框选。完整验证还运行 `verify-platform.py`，同时核对两处部署配置、源/产物 Info.plist 和 arm64/x86_64 Mach-O 的 macOS 13 最低目标。实机权限、输入法及跨应用粘贴另行验证，不能由 XCTest 替代。
+
 ## 可选性能与图像验证 / Optional probes
 
 ```sh

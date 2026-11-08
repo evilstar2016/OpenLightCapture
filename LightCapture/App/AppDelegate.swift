@@ -62,10 +62,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         GIFFrameStore.cleanupAbandoned(root: VideoRecorder.defaultRoot)
         assetStore.startMaintenance()
         outputDeliveryService.onPublished = { [weak self] in self?.showPublishedTip() }
-        captureFlowController.onLongCaptureRequested = { [weak self] screen, rect, session in
-            self?.longCaptureController.begin(screen: screen, pixelRect: rect, session: session)
+        captureFlowController.onLongCaptureRequested = { [weak self] screen, rect, session, region in
+            self?.longCaptureController.begin(screen: screen, pixelRect: rect, session: session, region: region)
         }
         captureFlowController.onSessionCancelled = { [weak self] in self?.longCaptureController.cancel() }
+        captureFlowController.onTextReady = { [weak self] text, session in
+            guard let self else { throw CancellationError() }
+            try outputDeliveryService.copyText(text) {
+                self.captureFlowController.isCurrent(sessionID: session.id, generation: session.generation)
+            }
+            showStatusTip(L10n.ocrCopied, duration: .seconds(2))
+        }
         captureFlowController.onRecordingRequested = { [weak self] display, rect, session, startsImmediately in
             self?.recordingController.begin(display: display, pixelRect: rect, session: session, startsImmediately: startsImmediately)
         }

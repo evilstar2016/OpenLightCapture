@@ -4,6 +4,23 @@ import XCTest
 
 @MainActor
 final class AutomaticScrollAccessTests: XCTestCase {
+    func testFixedHeaderKeepsScrollTargetAndStepInsideTheBodyAtBothDisplayScales() throws {
+        let frame = CGRect(x: -1200, y: 100, width: 1000, height: 800)
+        let window = CapturedWindow(id: 123, processIdentifier: 42, frame: frame)
+        for scale in [1, 2] {
+            let transform = try DisplayTransform(screenFrame: frame, pixelWidth: 1000 * scale, pixelHeight: 800 * scale)
+            let selection = CGRect(x: 100 * scale, y: 100 * scale, width: 400 * scale, height: 600 * scale)
+            let region = LongCaptureRegion(fixedHeaderHeight: 400 * scale)
+            let body = try XCTUnwrap(region.bodyScreenRect(selectionPixelRect: selection, transform: transform))
+            XCTAssertEqual(body, CGRect(x: -1100, y: 200, width: 400, height: 200))
+            let target = try XCTUnwrap(AutomaticScrollTarget(window: window, selection: body))
+            XCTAssertEqual(target.globalPoint, CGPoint(x: -900, y: 300))
+            XCTAssertEqual(AutomaticScrollEvent.stepPixels(forViewportHeight: body.height), 70)
+            let event = try XCTUnwrap(AutomaticScrollEvent.make(pixels: 70, target: target, primaryScreenHeight: 900))
+            XCTAssertEqual(event.location, CGPoint(x: -900, y: 600))
+        }
+    }
+
     func testGrantedAccessPostsNativeWheelForTheVisibleBoundWindow() throws {
         let target = try target()
         var postedWindows: [CGWindowID] = []

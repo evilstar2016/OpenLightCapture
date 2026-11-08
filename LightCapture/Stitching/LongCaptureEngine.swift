@@ -15,6 +15,7 @@ final class LongCaptureEngine {
     typealias Matcher = @Sendable (CGImage, CGImage) async -> OverlapMatch
     private let sessionID: UUID
     private let matcher: Matcher
+    private let region: LongCaptureRegion
     private let now: () -> TimeInterval
     private var store: TileStore?
     private var baseline: CGImage?
@@ -27,10 +28,11 @@ final class LongCaptureEngine {
     private(set) var isComplete = false
     private(set) var pauseReason: String?
 
-    init(sessionID: UUID, workspaceRootURL: URL? = nil, matcher: @escaping Matcher = OverlapMatcher.match, now: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime }) {
+    init(sessionID: UUID, workspaceRootURL: URL? = nil, region: LongCaptureRegion = LongCaptureRegion(), matcher: @escaping Matcher = OverlapMatcher.match, now: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime }) {
         self.sessionID = sessionID
         self.workspaceRootURL = workspaceRootURL
         self.matcher = matcher
+        self.region = region
         self.now = now
     }
 
@@ -42,7 +44,8 @@ final class LongCaptureEngine {
         }
         operationGeneration &+= 1
         let generation = operationGeneration
-        guard CaptureImageLimits.contains(width: image.width, height: image.height)
+        guard CaptureImageLimits.contains(width: image.width, height: image.height),
+              let bodyRect = region.bodyRect(width: image.width, height: image.height)
         else {
             return pause(L10n.stitchInvalidImage)
         }
@@ -52,7 +55,7 @@ final class LongCaptureEngine {
                 startupCandidate = image
                 return .waitingForStableFrame
             }
-            let match = await matcher(startupCandidate, image)
+            let match = await matchBody(previous: startupCandidate, current: image)
             guard isCurrentOperation(generation) else { return pausedUpdate() }
             switch match {
             case .unchanged:
@@ -60,8 +63,8 @@ final class LongCaptureEngine {
                 guard isCurrentOperation(generation) else { return pausedUpdate() }
                 return store.map { .initialized(height: $0.totalHeight) } ?? pause(L10n.stitchWorkspaceFailed)
             case let .accepted(displacement, drift, replacement):
-                guard drift == 0, displacement > 0, displacement <= image.height * 3 / 4,
-                      replacement >= 0, replacement <= min(96, (image.height - displacement) / 4)
+                guard drift == 0, displacement > 0, displacement <= Int(bodyRect.height) * 3 / 4,
+                      replacement >= 0, replacement <= min(96, (Int(bodyRect.height) - displacement) / 4)
                 else {
                     return pause(L10n.stitchInitialAlignment)
                 }
@@ -100,15 +103,15 @@ final class LongCaptureEngine {
         guard image.width == baseline.width, image.height == baseline.height else {
             return pause(L10n.stitchSizeChanged)
         }
-        switch await matcher(baseline, image) {
+        switch await matchBody(previous: baseline, current: image) {
         case .unchanged:
             guard isCurrentOperation(generation) else { return pausedUpdate() }
             resetMismatch()
             return .unchanged(height: store?.totalHeight ?? 0)
         case let .accepted(displacement, drift, replacement):
             guard isCurrentOperation(generation) else { return pausedUpdate() }
-            guard drift == 0, displacement > 0, displacement <= image.height * 3 / 4,
-                  replacement >= 0, replacement <= min(96, (image.height - displacement) / 4)
+            guard drift == 0, displacement > 0, displacement <= Int(bodyRect.height) * 3 / 4,
+                  replacement >= 0, replacement <= min(96, (Int(bodyRect.height) - displacement) / 4)
             else {
                 return pause(L10n.stitchAlignmentLost)
             }
@@ -187,6 +190,18 @@ final class LongCaptureEngine {
         resetMismatch()
         isPaused = true
         isComplete = true
+    }
+
+    private func matchBody(previous: CGImage, current: CGImage) async -> OverlapMatch {
+        guard previous.width == current.width, previous.height == current.height else {
+            return .ambiguous(L10n.matchSizeChanged)
+        }
+        guard region.fixedHeaderHeight > 0 else { return await matcher(previous, current) }
+        guard let rect = region.bodyRect(width: current.width, height: current.height),
+              let oldBody = previous.cropping(topLeftRect: rect),
+              let newBody = current.cropping(topLeftRect: rect)
+        else { return .ambiguous(L10n.matchPixelsUnavailable) }
+        return await matcher(oldBody, newBody)
     }
 
     private func initialize(with image: CGImage, generation: UInt64) async {

@@ -2200,13 +2200,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Manual mode needs Screen Recording; automatic mode also needs control permission. Restart after allowing access. Exclude fixed headers, footers, and scrollbars."
+            "value": "Manual mode needs Screen Recording; automatic mode also needs control permission. Restart after allowing access. Mark fixed headers in the selection toolbar before starting; exclude footers and scrollbars."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "手动长截图只需录屏权限；自动另需控制权限，授权后请重启 OpenLightCapture。请排除固定标题、底栏和滚动条。"
+            "value": "手动模式需要屏幕录制权限，自动模式还需要控制权限。授权后请重启应用。开始前可在选区工具栏标记固定头部；请避开固定底栏和滚动条。"
           }
         }
       }
@@ -5866,6 +5866,295 @@
           "stringUnit": {
             "state": "translated",
             "value": "清除并录制"
+          }
+        }
+      }
+    },
+    "ocr.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recognize Text"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "识别文字"
+          }
+        }
+      }
+    },
+    "ocr.recognizing": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recognizing text… You can cancel and return to the screenshot."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在识别文字…可取消并返回截图。"
+          }
+        }
+      }
+    },
+    "ocr.resultHelp": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit the result, then select text and press ⌘C, or copy all text and finish."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可修改结果，选中文字后按 ⌘C，或复制全文并结束截图。"
+          }
+        }
+      }
+    },
+    "ocr.localHelp": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recognition runs locally. The clipboard changes only when you copy text."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "识别在本机完成。只有主动复制文字才会替换剪贴板。"
+          }
+        }
+      }
+    },
+    "ocr.empty": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No text recognized. Return to adjust the screenshot or try again."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未识别到文字，可返回调整截图或重试。"
+          }
+        }
+      }
+    },
+    "ocr.failed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unable to recognize text. Return to the screenshot or try again."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文字识别失败，可返回截图或重试。"
+          }
+        }
+      }
+    },
+    "ocr.unsupportedLanguages": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chinese and English text recognition is unavailable on this Mac."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此 Mac 当前无法提供中英文文字识别。"
+          }
+        }
+      }
+    },
+    "ocr.imageTooLarge": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This image is too large to recognize. Return and select a smaller area."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此图像超出文字识别可处理范围，请返回并缩小选区。"
+          }
+        }
+      }
+    },
+    "ocr.incompleteBoundary": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unable to recognize all of this image. Return and select a smaller area, then try again."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法完整识别这张图像，请返回并缩小选区后重试。"
+          }
+        }
+      }
+    },
+    "ocr.return": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Return to Screenshot"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "返回截图"
+          }
+        }
+      }
+    },
+    "ocr.cancelAndReturn": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancel and Return"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "取消并返回截图"
+          }
+        }
+      }
+    },
+    "ocr.retry": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Try Again"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重试"
+          }
+        }
+      }
+    },
+    "ocr.copyAndFinish": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy Text and Finish"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "复制文字并结束"
+          }
+        }
+      }
+    },
+    "ocr.copied": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Text copied"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文字已复制"
+          }
+        }
+      }
+    },
+    "long.headerBoundary": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Header kept once · Drag below header and shadow"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "头部仅保留一次 · 拖到头部下沿（含阴影）"
+          }
+        }
+      }
+    },
+    "long.keepHeader": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep Fixed Header Once"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保留固定头部（仅一次）"
+          }
+        }
+      }
+    },
+    "long.headerHelp": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drag the divider below the fixed header, including its shadow. The header is kept once. Use Up/Down arrows to adjust. Supports headers that stay fixed at the same height throughout capture."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将分界线拖到固定头部下沿，包含阴影。头部只保留一次，可用上下方向键微调。适用于采集期间始终固定且高度不变的头部。"
           }
         }
       }
