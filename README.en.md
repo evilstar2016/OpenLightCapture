@@ -6,7 +6,7 @@ A native macOS menu bar screenshot tool. Select an area, annotate it, capture sc
 
 [简体中文](README.md) · **English**
 
-Follow the author [@EverSeenU on X](https://x.com/EverSeenU) for project updates and development notes, and share your experience with the app.
+Follow the author [@qishu_lab on X](https://x.com/qishu_lab) for project updates and development notes, and share your experience with the app.
 
 [User guide](docs/USER_GUIDE.md) · [Development](docs/DEVELOPMENT.md) · [Contributing](CONTRIBUTING.md) · [Privacy](PRIVACY.md) · [Changelog](CHANGELOG.md)
 

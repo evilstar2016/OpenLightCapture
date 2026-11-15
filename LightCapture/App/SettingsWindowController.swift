@@ -149,9 +149,9 @@ private struct SettingsView: View {
             HStack {
                 explanation(L10n.settingsFollowAuthor)
                 Spacer(minLength: 16)
-                Link(destination: URL(string: "https://x.com/EverSeenU")!) {
+                Link(destination: URL(string: "https://x.com/qishu_lab")!) {
                     HStack(spacing: 6) {
-                        Text(verbatim: "X · @EverSeenU")
+                        Text(verbatim: "X · @qishu_lab")
                         Image(systemName: "arrow.up.right")
                             .font(.caption)
                     }

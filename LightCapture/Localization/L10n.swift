@@ -979,6 +979,6 @@ enum L10n {
     }
 
     static var settingsAuthorLinkHelp: String {
-        LocalizationContext.current.string("settings.authorLinkHelp", defaultValue: "Open @EverSeenU on X in your browser")
+        LocalizationContext.current.string("settings.authorLinkHelp", defaultValue: "Open @qishu_lab on X in your browser")
     }
 }

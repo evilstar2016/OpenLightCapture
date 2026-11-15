@@ -22,7 +22,7 @@ macOS 27+ 每次 OCR 会话使用同一应用可执行文件的独立工作进�
 
 ### 网络与第三方
 
-当前应用没有账号、云上传、分析 SDK、遥测或更新检查的网络实现。系统授权页面和 Finder 操作由 macOS 处理。设置页的 X 账号链接仅在用户点击后调用默认浏览器打开 `https://x.com/EverSeenU`；浏览器会连接该网站并适用其隐私政策，应用不预加载账号内容。
+当前应用没有账号、云上传、分析 SDK、遥测或更新检查的网络实现。系统授权页面和 Finder 操作由 macOS 处理。设置页的 X 账号链接仅在用户点击后调用默认浏览器打开 `https://x.com/qishu_lab`；浏览器会连接该网站并适用其隐私政策，应用不预加载账号内容。
 
 复制后，系统通用剪贴板、剪贴板管理器和目标应用可能按各自设置保存、同步或上传图片或文字；这不由本项目控制。本说明也不涵盖 GitHub 上的 Issue、附件或下载服务。
 
@@ -86,7 +86,7 @@ On macOS 27+, each session uses a separate instance of the app executable. A PNG
 
 ### Network and local storage
 
-The current app implements no accounts, uploads, analytics, telemetry, or network update checks. macOS handles system settings and Finder actions. Clicking the author’s X link in Settings opens `https://x.com/EverSeenU` in the default browser, which connects to the site under its own privacy policy. The app does not preload the profile. The operating system's clipboard services, clipboard managers, and receiving apps can retain or sync copied images independently.
+The current app implements no accounts, uploads, analytics, telemetry, or network update checks. macOS handles system settings and Finder actions. Clicking the author’s X link in Settings opens `https://x.com/qishu_lab` in the default browser, which connects to the site under its own privacy policy. The app does not preload the profile. The operating system's clipboard services, clipboard managers, and receiving apps can retain or sync copied images independently.
 
 For the default bundle identifier, files live under `~/Library/Application Support/io.github.evilstar2016.openlightcapture/`: `Assets/` contains PNG/GIF files and asset metadata, `Working/` contains scrolling tiles, `WorkingGIF/` holds GIF raw frames and unpublished results, `WorkingVideo/` holds MP4 working files and unsaved results, and `instance.lock` enforces one running instance. Changing the bundle identifier changes the storage location.
 

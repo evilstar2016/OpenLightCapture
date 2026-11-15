@@ -3904,13 +3904,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Open @EverSeenU on X in your browser"
+            "value": "Open @qishu_lab on X in your browser"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "在浏览器中打开 X：@EverSeenU"
+            "value": "在浏览器中打开 X：@qishu_lab"
           }
         }
       }

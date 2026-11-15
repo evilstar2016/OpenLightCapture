@@ -6,7 +6,7 @@
 
 **简体中文** · [English](README.en.md)
 
-欢迎在 X 关注作者 [@EverSeenU](https://x.com/EverSeenU)，了解项目动态与开发记录，也欢迎交流使用体验。
+欢迎在 X 关注作者 [@qishu_lab](https://x.com/qishu_lab)，了解项目动态与开发记录，也欢迎交流使用体验。
 
 [操作手册](docs/OPERATION_MANUAL.md) · [使用指南](docs/USER_GUIDE.md) · [从源码构建](docs/DEVELOPMENT.md) · [参与贡献](CONTRIBUTING.md) · [隐私说明](PRIVACY.md) · [更新记录](CHANGELOG.md)
 
