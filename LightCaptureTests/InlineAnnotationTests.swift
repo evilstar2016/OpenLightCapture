@@ -194,6 +194,59 @@ final class InlineAnnotationTests: XCTestCase {
         XCTAssertEqual(value, "移动后继续编辑")
     }
 
+    func testTransparentTextEditorPreservesMultipleLinesInBothEditors() throws {
+        let overlay = try makeOverlay(scale: 2)
+        defer { overlay.close() }
+        try select(CGRect(x: 120, y: 100, width: 500, height: 300), in: overlay)
+        let editor = try AnnotationEditorWindowController(image: screen(scale: 2).image, onCancel: {}, onComplete: { _ in true })
+        defer { editor.close() }
+
+        let editorWindow = try XCTUnwrap(editor.window)
+        for window in [overlay as NSWindow, editorWindow] {
+            let root = try XCTUnwrap(window.contentView)
+            root.layoutSubtreeIfNeeded()
+            let canvas = try XCTUnwrap(views(in: root).compactMap { $0 as? AnnotationCanvasView }.first)
+            let crop = canvas.document.cropRect
+            let startRect = CGRect(x: crop.minX + 80, y: crop.minY + 80, width: 1, height: 1)
+            let start = canvas.viewRect(forPixelRect: startRect).origin
+            let unmarked = try AnnotationRenderer.renderSynchronously(canvas.document.renderSnapshot())
+            try button("capture.annotation.tool.6", in: root).performClick(nil)
+            try drag(from: start, to: start, on: canvas, window: window)
+
+            let input = try XCTUnwrap(canvas.subviews.compactMap { $0 as? AnnotationInputTextView }.first)
+            XCTAssertFalse(input.drawsBackground)
+            let initial = try XCTUnwrap(input.pixelEditingRect)
+            let value = String(repeating: "截图文字标注自动换行", count: 4) + "\n手动换行"
+            input.string = value
+            try drag(from: CGPoint(x: canvas.bounds.midX, y: canvas.bounds.midY),
+                     to: CGPoint(x: canvas.bounds.midX, y: canvas.bounds.midY), on: canvas, window: window)
+            let annotation = try XCTUnwrap(canvas.document.annotations.first)
+            guard case let .text(rect, text, fontSize, _) = annotation.content else { return XCTFail("应保存文字标注") }
+            XCTAssertEqual(text, value)
+            XCTAssertEqual(rect.origin, initial.origin)
+            XCTAssertEqual(rect.width, initial.width)
+            XCTAssertGreaterThan(rect.height, initial.height)
+            let lastLineTop = max(initial.maxY, rect.maxY - fontSize - 6)
+            let lower = CGRect(x: rect.minX, y: lastLineTop, width: rect.width, height: rect.maxY - lastLineTop)
+            let rendered = try AnnotationRenderer.renderSynchronously(canvas.document.renderSnapshot())
+            let exportRegion = lower.offsetBy(dx: -crop.minX, dy: -crop.minY).integral
+            let markedPixels = try XCTUnwrap(rendered.cropping(topLeftRect: exportRegion).flatMap(RGBAFrame.init(image:)))
+            let unmarkedPixels = try XCTUnwrap(unmarked.cropping(topLeftRect: exportRegion).flatMap(RGBAFrame.init(image:)))
+            XCTAssertNotEqual(markedPixels.bytes, unmarkedPixels.bytes)
+
+            func previewPixels() throws -> [UInt8] {
+                let region = canvas.viewRect(forPixelRect: lower).integral
+                let bitmap = try XCTUnwrap(canvas.bitmapImageRepForCachingDisplay(in: region))
+                canvas.cacheDisplay(in: region, to: bitmap)
+                return try XCTUnwrap(bitmap.cgImage.flatMap(RGBAFrame.init(image:))).bytes
+            }
+            let markedPreview = try previewPixels()
+            canvas.document.remove(id: annotation.id)
+            canvas.needsDisplay = true
+            XCTAssertNotEqual(markedPreview, try previewPixels())
+        }
+    }
+
     func testShapesAndMosaicCanBeDrawnAndMovedInBothEditorsWithoutSwitchingTools() throws {
         let overlay = try makeOverlay(scale: 2)
         defer { overlay.close() }

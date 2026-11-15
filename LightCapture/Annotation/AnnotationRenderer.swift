@@ -166,20 +166,32 @@ enum AnnotationRenderer {
         context.strokePath()
     }
 
-    private static func drawText(_ value: String, in rect: CGRect, fontSize: CGFloat, color: AnnotationColor, in context: CGContext) {
-        let font = CTFontCreateWithName("PingFangSC-Regular" as CFString, fontSize, nil)
-        let attributes: [NSAttributedString.Key: Any] = [
-            NSAttributedString.Key(kCTFontAttributeName as String): font,
-            NSAttributedString.Key(kCTForegroundColorAttributeName as String): color.cgColor,
-        ]
-        let attributedString = NSAttributedString(string: value, attributes: attributes)
-        let framesetter = CTFramesetterCreateWithAttributedString(attributedString)
+    static func drawText(_ value: String, in rect: CGRect, fontSize: CGFloat, color: AnnotationColor, in context: CGContext) {
+        let framesetter = textFramesetter(value, fontSize: fontSize, color: color)
         let path = CGPath(rect: rect.insetBy(dx: 3, dy: 3), transform: nil)
         let frame = CTFramesetterCreateFrame(framesetter, CFRange(location: 0, length: 0), path, nil)
         context.saveGState()
         context.textMatrix = .identity
         CTFrameDraw(frame, context)
         context.restoreGState()
+    }
+
+    static func requiredTextHeight(_ value: String, width: CGFloat, fontSize: CGFloat, color: AnnotationColor) -> CGFloat {
+        let suggested = CTFramesetterSuggestFrameSizeWithConstraints(
+            textFramesetter(value, fontSize: fontSize, color: color),
+            CFRange(location: 0, length: 0), nil,
+            CGSize(width: max(1, width - 6), height: 1_000_000), nil
+        )
+        return ceil(suggested.height) + 6
+    }
+
+    private static func textFramesetter(_ value: String, fontSize: CGFloat, color: AnnotationColor) -> CTFramesetter {
+        let font = CTFontCreateWithName("PingFangSC-Regular" as CFString, fontSize, nil)
+        let attributes: [NSAttributedString.Key: Any] = [
+            NSAttributedString.Key(kCTFontAttributeName as String): font,
+            NSAttributedString.Key(kCTForegroundColorAttributeName as String): color.cgColor,
+        ]
+        return CTFramesetterCreateWithAttributedString(NSAttributedString(string: value, attributes: attributes))
     }
 
     private static func quartzRect(_ topLeftRect: CGRect, imageHeight: Int) -> CGRect {

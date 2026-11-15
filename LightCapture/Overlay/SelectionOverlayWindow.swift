@@ -652,7 +652,7 @@ private final class SelectionOverlayRootView: NSView {
         finishTextEditing(commit: true)
         currentTool = .text
         editingAnnotation = existing
-        let input = AnnotationInputTextView(frame: annotationCanvas.viewRect(forPixelRect: rect).insetBy(dx: -2, dy: -2))
+        let input = AnnotationInputTextView(frame: annotationCanvas.viewRect(forPixelRect: rect))
         input.pixelEditingRect = rect
         input.pixelFontSize = annotationCanvas.style.fontSize
         editingColor = palette.selectedColor
@@ -672,8 +672,7 @@ private final class SelectionOverlayRootView: NSView {
         input.updateDisplayScale(annotationCanvas.viewRect(forPixelRect: CGRect(x: 0, y: 0, width: 1, height: 1)).width)
         input.textColor = editingColor.nsColor
         input.insertionPointColor = .controlAccentColor
-        input.drawsBackground = true
-        input.backgroundColor = .textBackgroundColor.withAlphaComponent(0.96)
+        input.drawsBackground = false
         input.onCommit = { [weak self] in self?.finishTextEditing(commit: true) }
         input.onCancel = { [weak self] in self?.finishTextEditing(commit: false) }
         textInput = input
@@ -686,9 +685,11 @@ private final class SelectionOverlayRootView: NSView {
 
     private func finishTextEditing(commit: Bool) {
         guard let input = textInput, let document else { return }
-        if commit, let rect = input.pixelEditingRect {
+        if commit {
             let value = input.string
-            if !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            if !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+               let rect = input.committedPixelRect(color: editingColor, crop: document.cropRect)
+            {
                 let annotation = Annotation(id: editingAnnotation?.id ?? UUID(), content: .text(rect: rect, value: value, fontSize: input.pixelFontSize, color: editingColor))
                 if editingAnnotation == nil { document.add(annotation) } else { document.replace(annotation) }
             } else if let existing = editingAnnotation { document.remove(id: existing.id) }

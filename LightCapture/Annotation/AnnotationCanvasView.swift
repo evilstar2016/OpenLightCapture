@@ -116,7 +116,7 @@ final class AnnotationCanvasView: NSView {
     override func layout() {
         super.layout()
         if let editingRect = currentTextEditingRect, let textEditor = currentTextEditor {
-            textEditor.frame = viewRect(forPixelRect: editingRect).insetBy(dx: -2, dy: -2)
+            textEditor.frame = viewRect(forPixelRect: editingRect)
             (textEditor as? AnnotationInputTextView)?.updateDisplayScale(aspectFitRect(size: document.cropRect.size).width / document.cropRect.width)
         }
     }
@@ -410,11 +410,13 @@ final class AnnotationCanvasView: NSView {
         case let .brush(points, color, lineWidth):
             drawBrush(points: points, color: color.nsColor, width: max(lineWidth * scale, 1))
         case let .text(rect, value, fontSize, color):
-            let attributes: [NSAttributedString.Key: Any] = [
-                .font: NSFont(name: "PingFangSC-Regular", size: fontSize * scale) ?? NSFont.systemFont(ofSize: fontSize * scale),
-                .foregroundColor: color.nsColor,
-            ]
-            (value as NSString).draw(in: viewRect(forPixelRect: rect).insetBy(dx: 3 * scale, dy: 3 * scale), withAttributes: attributes)
+            guard let context = NSGraphicsContext.current?.cgContext else { return }
+            let viewRect = viewRect(forPixelRect: rect)
+            context.saveGState()
+            context.translateBy(x: viewRect.minX, y: viewRect.maxY)
+            context.scaleBy(x: viewRect.width / rect.width, y: -viewRect.height / rect.height)
+            AnnotationRenderer.drawText(value, in: CGRect(origin: .zero, size: rect.size), fontSize: fontSize, color: color, in: context)
+            context.restoreGState()
         case let .mosaic(rect, blockSize):
             let mosaic: CGImage
             if let cached = mosaicCache[annotation.id], cached.content == annotation.content {
@@ -538,6 +540,16 @@ final class AnnotationInputTextView: NSTextView {
     var onCancel: (() -> Void)?
     var pixelEditingRect: CGRect?
     var pixelFontSize: CGFloat = 22
+
+    func committedPixelRect(color: AnnotationColor, crop: CGRect) -> CGRect? {
+        guard var rect = pixelEditingRect else { return nil }
+        let height = AnnotationRenderer.requiredTextHeight(string, width: rect.width, fontSize: pixelFontSize, color: color)
+        if height > rect.height {
+            rect.size.height = height
+            rect.origin.y = min(rect.minY, max(crop.minY, crop.maxY - height))
+        }
+        return rect
+    }
 
     func updateDisplayScale(_ scale: CGFloat) {
         let size = max(pixelFontSize * scale, 0.1)

@@ -36,7 +36,6 @@ final class AnnotationEditorWindowController: NSWindowController, NSWindowDelega
     }
 
     private var textView: AnnotationInputTextView?
-    private var editingPixelRect: CGRect?
     private var editingAnnotation: Annotation?
     private var editingColor: AnnotationColor = .red
     private var isFinishing = false
@@ -434,13 +433,12 @@ final class AnnotationEditorWindowController: NSWindowController, NSWindowDelega
         guard !isFinishing, !isDismissed else { return }
         finishTextEditing(commit: true)
         canvas.tool = .text
-        editingPixelRect = rect
         editingAnnotation = annotation
         if let annotation, case let .text(_, _, fontSize, color) = annotation.content {
             palette.selectTextStyle(fontSize: fontSize, color: color, pixelScale: annotationPixelScale)
         }
         updateCanvasStyle()
-        let input = AnnotationInputTextView(frame: canvas.viewRect(forPixelRect: rect).insetBy(dx: -2, dy: -2))
+        let input = AnnotationInputTextView(frame: canvas.viewRect(forPixelRect: rect))
         input.pixelEditingRect = rect
         input.pixelFontSize = canvas.style.fontSize
         editingColor = palette.selectedColor
@@ -457,8 +455,7 @@ final class AnnotationEditorWindowController: NSWindowController, NSWindowDelega
         input.updateDisplayScale(canvas.viewRect(forPixelRect: CGRect(x: 0, y: 0, width: 1, height: 1)).width)
         input.textColor = editingColor.nsColor
         input.insertionPointColor = .controlAccentColor
-        input.drawsBackground = true
-        input.backgroundColor = .textBackgroundColor.withAlphaComponent(0.94)
+        input.drawsBackground = false
         input.string = annotation.flatMap { value -> String? in
             if case let .text(_, text, _, _) = value.content { return text }
             return nil
@@ -475,8 +472,8 @@ final class AnnotationEditorWindowController: NSWindowController, NSWindowDelega
     private func finishTextEditing(commit: Bool) {
         guard let input = textView else { return }
         if commit,
-           let rect = editingPixelRect,
-           !input.string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+           !input.string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+           let rect = input.committedPixelRect(color: editingColor, crop: annotationDocument.cropRect)
         {
             let existing = editingAnnotation
             let updated = Annotation(id: existing?.id ?? UUID(), content: .text(rect: rect, value: input.string, fontSize: input.pixelFontSize, color: editingColor))
@@ -486,7 +483,6 @@ final class AnnotationEditorWindowController: NSWindowController, NSWindowDelega
         }
         input.removeFromSuperview()
         textView = nil
-        editingPixelRect = nil
         editingAnnotation = nil
         canvas.refresh()
         updateHistoryButtons()
