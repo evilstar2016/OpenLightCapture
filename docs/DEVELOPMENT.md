@@ -108,4 +108,4 @@ bash scripts/verify-watermark-ui.sh
 
 `build/` 为生成目录，不纳入 Git。运行构建、测试或性能脚本会重新生成缓存、日志和临时文件。清理时先确认需要保留的 app/ZIP；不要对应用实际的数据目录进行构建清理。
 
-OpenLightCapture 1.1.0（构建 28）的下载和验证记录见 [v1.1.0 发布页](https://github.com/evilstar2016/OpenLightCapture/releases/tag/v1.1.0)。真实系统权限和跨应用 GUI 流程需单独实机验收。可运行上述命令重新验证。本仓库目前没有配置 GitHub Actions 工作流。
+OpenLightCapture 1.2.0（构建 29）的下载和验证记录见 [v1.2.0 发布页](https://github.com/evilstar2016/OpenLightCapture/releases/tag/v1.2.0)。真实系统权限和跨应用 GUI 流程需单独实机验收。可运行上述命令重新验证。本仓库目前没有配置 GitHub Actions 工作流。

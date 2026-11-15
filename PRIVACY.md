@@ -1,6 +1,6 @@
 # 隐私与本地数据 / Privacy and local data
 
-本文描述 OpenLightCapture 当前源码的数据处理方式。本地文字识别功能尚未包含在 1.1.0 发行包中。
+本文描述 OpenLightCapture 的数据处理方式，适用于包含本地文字识别的 1.2.0 发行版。
 
 ## 中文
 

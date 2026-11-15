@@ -30,7 +30,7 @@
 
 ## 项目状态与支持范围
 
-当前发行版本为 **1.1.0（构建 28）**。本地 OCR 和固定头部长截图已进入 `main` 源码，尚未包含在该发行包中；可从源码构建体验。
+当前发行版本为 **1.2.0（构建 29）**，包含本地 OCR、固定头部长截图、多行文字标注修复和透明输入背景。
 
 - 运行要求为 macOS 13（Ventura）及以上。
 - 构建架构：Apple Silicon `arm64` 与 Intel `x86_64`。Intel 和更早 macOS 的实机覆盖尚不完整。
@@ -61,9 +61,9 @@ Cask 使用下方同一份官方 DMG 和 SHA-256 校验值，保留系统安全�
 
 ### DMG 与源码
 
-下载 [OpenLightCapture 1.1.0 通用 DMG](https://github.com/evilstar2016/OpenLightCapture/releases/download/v1.1.0/OpenLightCapture-1.1.0-macOS-universal.dmg)，打开后将 `OpenLightCapture.app` 拖到 `Applications`。应用支持 Apple Silicon 和 Intel。
+下载 [OpenLightCapture 1.2.0 通用 DMG](https://github.com/evilstar2016/OpenLightCapture/releases/download/v1.2.0/OpenLightCapture-1.2.0-macOS-universal.dmg)，打开后将 `OpenLightCapture.app` 拖到 `Applications`。应用支持 Apple Silicon 和 Intel。
 
-[发布说明](https://github.com/evilstar2016/OpenLightCapture/releases/tag/v1.1.0) · [SHA-256 校验和](https://github.com/evilstar2016/OpenLightCapture/releases/download/v1.1.0/OpenLightCapture-1.1.0-macOS-universal.dmg.sha256)。包内应用采用 ad hoc 签名，尚未完成 Developer ID 签名与 Apple 公证，macOS 可能阻止首次启动。也可以使用下面的命令从源码构建。
+[发布说明](https://github.com/evilstar2016/OpenLightCapture/releases/tag/v1.2.0) · [SHA-256 校验和](https://github.com/evilstar2016/OpenLightCapture/releases/download/v1.2.0/OpenLightCapture-1.2.0-macOS-universal.dmg.sha256)。包内应用采用 ad hoc 签名，尚未完成 Developer ID 签名与 Apple 公证，macOS 可能阻止首次启动。也可以使用下面的命令从源码构建。
 
 本地构建采用 ad hoc 签名，尚未完成 Developer ID 签名与 Apple 公证。仓库不提交本机 `build/` 目录。
 

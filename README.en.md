@@ -30,7 +30,7 @@ Images and videos are processed locally. The app has no network requests, teleme
 
 ## Status and compatibility
 
-The current published version is **1.1.0 (build 28)**. Local OCR and fixed-header scrolling are available on `main` and require a source build; they are not included in that published package.
+The current release is **1.2.0 (build 29)**. It includes local OCR, fixed-header scrolling capture, a fix for multiline text annotations, and a transparent text editing background.
 
 - Requires macOS 13 (Ventura) or later.
 - Builds for Apple Silicon (`arm64`) and Intel (`x86_64`). Intel hardware and older macOS versions have incomplete hands-on coverage.
@@ -61,9 +61,9 @@ The cask uses the same upstream DMG and SHA-256 checksum listed below and preser
 
 ### DMG and source
 
-Download the [OpenLightCapture 1.1.0 universal DMG](https://github.com/evilstar2016/OpenLightCapture/releases/download/v1.1.0/OpenLightCapture-1.1.0-macOS-universal.dmg), open it, and drag `OpenLightCapture.app` to `Applications`. Both Apple Silicon and Intel are supported.
+Download the [OpenLightCapture 1.2.0 universal DMG](https://github.com/evilstar2016/OpenLightCapture/releases/download/v1.2.0/OpenLightCapture-1.2.0-macOS-universal.dmg), open it, and drag `OpenLightCapture.app` to `Applications`. Both Apple Silicon and Intel are supported.
 
-[Release notes](https://github.com/evilstar2016/OpenLightCapture/releases/tag/v1.1.0) · [SHA-256 checksum](https://github.com/evilstar2016/OpenLightCapture/releases/download/v1.1.0/OpenLightCapture-1.1.0-macOS-universal.dmg.sha256). The bundled app uses ad hoc signing without Developer ID signing or Apple notarization; macOS may block its first launch. You can also build from source using the commands below.
+[Release notes](https://github.com/evilstar2016/OpenLightCapture/releases/tag/v1.2.0) · [SHA-256 checksum](https://github.com/evilstar2016/OpenLightCapture/releases/download/v1.2.0/OpenLightCapture-1.2.0-macOS-universal.dmg.sha256). The bundled app uses ad hoc signing without Developer ID signing or Apple notarization; macOS may block its first launch. You can also build from source using the commands below.
 
 Local builds use ad hoc signing and have not been Developer ID signed or notarized by Apple. The local `build/` directory is not committed.
 
